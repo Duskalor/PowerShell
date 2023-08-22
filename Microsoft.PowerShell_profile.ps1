@@ -22,7 +22,12 @@ function tg {
 function vite {
    pnpm create vite@latest $args[0];
    Set-Location $args[0];
-   code .;
    pnpm i;
+   code .;
    pnpm run dev;
+}
+
+
+function qw {
+    Invoke-Item ./;
 }
