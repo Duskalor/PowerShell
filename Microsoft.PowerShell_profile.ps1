@@ -42,6 +42,7 @@ function vite {
    code .;
    pnpm run dev;
 }
+
 function vitet {
    pnpm create vite@latest $args[0];
    Set-Location $args[0];
