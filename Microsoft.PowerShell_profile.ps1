@@ -22,6 +22,9 @@ function l {
 function p {
     Set-Location -Path "C:\Users\$user\Documents\Proyects\PHP"
 }
+function ne {
+    Set-Location -Path "C:\Users\$user\Documents\Proyects\Nextjs"
+}
 function power {
     Set-Location -Path "C:\Users\$user\Documents\PowerShell\";
     code .;
@@ -39,6 +42,12 @@ function vite {
    pnpm create vite@latest $args[0];
    Set-Location $args[0];
    pnpm i;   
+   code .;
+   pnpm run dev;
+}
+function next {
+   pnpx create-next-app@latest $args[0];
+   Set-Location $args[0];
    code .;
    pnpm run dev;
 }
