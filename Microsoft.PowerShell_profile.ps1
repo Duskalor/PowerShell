@@ -63,7 +63,28 @@ function vitet {
 }
 
 
+function cf {
+    param (
+        [string]$path = ".",      # Ruta por defecto es el directorio actual
+        [string]$extension = ".txt"  # Extensión por defecto es .txt
+    )
 
+    if (-not (Test-Path $path)) {
+        Write-Host "La ruta $path no existe"
+            New-Item -Path ".\$path$extension" -ItemType File -Force
+
+        foreach ($item in $args) {
+        #  Verificar si la ruta existe
+            New-Item -Path ".\$item$extension" -ItemType File -Force
+        }
+    }else{
+        foreach ($item in $args) {
+            # Concatenar la ruta y la extensión
+            $filename = "$path\$item$extension"
+            New-Item -Path $filename -ItemType File -Force
+        }
+    }
+}
 
 function astro {
    pnpm create astro@latest $args[0];
