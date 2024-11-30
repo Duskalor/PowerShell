@@ -13,6 +13,9 @@ function fr {
 function n {
     Set-Location -Path "C:\Users\$user\Documents\Proyects\Node"
 }
+function mono {
+    Set-Location -Path "C:\Users\$user\Documents\Proyects\MonoRepo"
+}
 function as {
     Set-Location -Path "C:\Users\$user\Documents\Proyects\astro"
 }
