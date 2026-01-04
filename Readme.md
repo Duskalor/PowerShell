@@ -161,5 +161,5 @@ Si tienes sugerencias para mejorar estas funciones, ¡no dudes en abrir un issue
 
 ---
 
-**Autor:** [Tu nombre]  
+**Autor:** Paul Cruz  
 **Licencia:** MIT
