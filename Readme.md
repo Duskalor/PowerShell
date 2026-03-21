@@ -1,165 +1,57 @@
-# PowerShell Profile - Guía de Uso
+# PowerShell Profile
 
-Este es mi perfil personalizado de PowerShell que incluye funciones y atajos para agilizar mi flujo de trabajo en desarrollo.
+My PowerShell 7 profile for Windows + Alacritty + Zellij.
 
-## 📋 Tabla de Contenidos
+## Features
 
-- [Instalación](#instalación)
-- [Funciones de Navegación](#funciones-de-navegación)
-- [Funciones de Desarrollo](#funciones-de-desarrollo)
-- [Utilidades](#utilidades)
+- **Terminal-Icons** — File icons in `ls` output
+- **PSReadLine ListView** — Autocomplete predictions
+- **Zellij CWD inheritance** — New panes open in current directory (workaround for Windows port)
+- **Engram sync** — Push/pull persistent AI memory to GitHub
 
-## 🚀 Instalación
+## Quick Navigation
 
-1. Abre PowerShell y ejecuta:
+| Command | Path |
+|---------|------|
+| `d` | `~/Documents/Proyects` |
+| `pr` | `~/Documents/Proyects/React` |
+| `n` | `~/Documents/Proyects/Node` |
+| `ne` | `~/Documents/Proyects/Nextjs` |
+| `nes` | `~/Documents/Proyects/nestjs` |
+| `as` | `~/Documents/Proyects/astro` |
+| `js` | `~/Documents/Proyects/javascript` |
+| `l` | `~/Documents/Proyects/Laravel` |
+| `p` | `~/Documents/Proyects/PHP` |
+| `mono` | `~/Documents/Proyects/MonoRepo` |
+
+## Project Scaffolding
+
+| Command | What it does |
+|---------|-------------|
+| `vite <name>` | Create Vite project + install + open VSCode + dev |
+| `vitet <name>` | Same + Tailwind |
+| `next <name>` | Create Next.js project + open VSCode + dev |
+| `astro <name>` | Create Astro project + open VSCode + dev |
+
+## Utilities
+
+| Command | What it does |
+|---------|-------------|
+| `dev` | `pnpm run dev` |
+| `w` | Open current folder in explorer |
+| `cf <path> <files>` | Create folder + files (.ts default) |
+| `newdb [port]` | Spin up Postgres via Docker + copy connection string |
+| `rmj [name]` | Parse judicial HTML into searchable TXT + HTML |
+| `engram-push` | Export + push engram memories to GitHub |
+| `engram-pull` | Pull + import engram memories from GitHub |
+
+## Setup
+
 ```powershell
-notepad $PROFILE
+# Clone to PowerShell profile directory
+git clone https://github.com/Duskalor/PowerShell.git ~/Documents/PowerShell
+
+# Required modules
+Install-Module Terminal-Icons -Scope CurrentUser
+Install-Module PSReadLine -Scope CurrentUser
 ```
-
-2. Copia el contenido del archivo en tu perfil
-3. Guarda y reinicia PowerShell
-
-## 📁 Funciones de Navegación
-
-Atajos rápidos para moverte entre directorios de proyectos:
-
-| Función | Descripción | Ruta |
-|---------|-------------|------|
-| `d` | Directorio principal de proyectos | `Documents\Proyects` |
-| `pr` | Proyectos de React | `Documents\Proyects\React` |
-| `fr` | FrontEnd Mentor | `Documents\Proyects\React\frontEndMentor` |
-| `n` | Proyectos Node.js | `Documents\Proyects\Node` |
-| `mono` | MonoRepo | `Documents\Proyects\MonoRepo` |
-| `as` | Proyectos Astro | `Documents\Proyects\astro` |
-| `l` | Proyectos Laravel | `Documents\Proyects\Laravel` |
-| `p` | Proyectos PHP | `Documents\Proyects\PHP` |
-| `ne` | Proyectos Next.js | `Documents\Proyects\Nextjs` |
-| `js` | JavaScript | `Documents\Proyects\javascript` |
-| `nes` | Proyectos NestJS | `Documents\Proyects\nestjs` |
-| `power` | Scripts PowerShell | `Documents\PowerShell` (abre VS Code) |
-
-
-### Ejemplos:
-```powershell
-# Ir a proyectos de React
-pr
-
-# Ir a proyectos de Node
-n
-```
-
-## 🛠️ Funciones de Desarrollo
-
-### Crear Proyectos Nuevos
-
-#### `vite [nombre]`
-Crea un nuevo proyecto con Vite.
-```powershell
-vite mi-proyecto
-```
-**Acciones:**
-- Crea el proyecto
-- Instala dependencias
-- Abre VS Code
-- Inicia servidor de desarrollo
-
-#### `vitet [nombre]`
-Crea un proyecto Vite con Tailwind CSS preconfigurado.
-```powershell
-vitet mi-app-tailwind
-```
-
-#### `next [nombre]`
-Crea un nuevo proyecto Next.js.
-```powershell
-next mi-app-nextjs
-```
-
-#### `astro [nombre]`
-Crea un nuevo proyecto Astro.
-```powershell
-astro mi-sitio-astro
-```
-
-### Desarrollo
-
-#### `dev`
-Ejecuta el comando de desarrollo del proyecto actual.
-```powershell
-dev
-# Equivale a: pnpm run dev
-```
-
-## 🗄️ Base de Datos
-
-### `newdb [puerto]`
-
-Crea y levanta un contenedor PostgreSQL con Docker Compose.
-```powershell
-# Con puerto específico
-newdb 5432
-
-# Sin puerto (asigna uno disponible automáticamente)
-newdb
-```
-
-**Características:**
-- Crea archivo `docker-compose.yml` si no existe
-- Levanta contenedor PostgreSQL 14.1
-- Usuario: `dusk`
-- Password: `dusk`
-- Base de datos: `dusk`
-- Copia la cadena de conexión al portapapeles automáticamente
-
-**Cadena de conexión generada:**
-```
-DATABASE_URL=postgresql://dusk:dusk@localhost:[PUERTO]/dusk
-```
-
-## 📝 Utilidades
-
-### `cf [carpeta] [archivos...]`
-
-Crea carpeta y archivos TypeScript de forma rápida.
-```powershell
-# Crear carpeta con archivos .ts
-cf utils helper config types
-
-# Crear archivos con extensiones específicas
-cf components Button.tsx Card.tsx
-```
-
-**Comportamiento:**
-- Si la carpeta no existe, la crea
-- Por defecto añade extensión `.ts`
-- Si el archivo incluye un punto, respeta la extensión
-
-### `w`
-Abre el explorador de Windows en el directorio actual.
-```powershell
-w
-```
-
-
-## ⚙️ Configuración Adicional
-
-### PsReadLine
-El perfil configura PsReadLine con vista de lista para autocompletado mejorado:
-```powershell
-Set-PsReadLineOption -PredictionViewStyle ListView
-```
-
-## 📌 Notas
-
-- Todas las funciones de navegación se adaptan automáticamente al usuario actual (`$env:USERNAME`)
-- Requiere `pnpm` instalado para las funciones de creación de proyectos
-- Requiere Docker Desktop para la función `newdb`
-
-## 🤝 Contribuciones
-
-Si tienes sugerencias para mejorar estas funciones, ¡no dudes en abrir un issue o PR!
-
----
-
-**Autor:** Paul Cruz  
-**Licencia:** MIT
