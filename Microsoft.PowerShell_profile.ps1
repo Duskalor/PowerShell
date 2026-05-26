@@ -286,3 +286,33 @@ $npmGlobals = "C:\Users\$user\AppData\Roaming\npm"
 if ((Test-Path $npmGlobals) -and (($env:PATH -split ';') -notcontains $npmGlobals)) {
     $env:PATH = "$npmGlobals;$env:PATH"
 }
+
+# --- TOOLS BLOCK (zoxide / starship / bat / eza / rg / fd) -------------------
+# Para desinstalar: ejecuta Scripts\uninstall_tools.ps1 y borra este bloque.
+
+# Starship prompt — solo fuera de Zellij (Zellij tiene su propio prompt para CWD tracking)
+if (-not $env:ZELLIJ) {
+    if (Get-Command starship -ErrorAction SilentlyContinue) {
+        Invoke-Expression (&starship init powershell)
+    }
+}
+
+# Zoxide (smart cd: usa 'z' en lugar de 'cd')
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+}
+
+# eza — listado con iconos y colores
+if (Get-Command eza -ErrorAction SilentlyContinue) {
+    function ls { eza --icons $args }
+    function ll { eza --icons -l $args }
+    function la { eza --icons -la $args }
+    function lt { eza --icons --tree --level=2 $args }
+}
+
+# bat — cat con syntax highlighting
+if (Get-Command bat -ErrorAction SilentlyContinue) {
+    function cat { bat $args }
+}
+
+# --- END TOOLS BLOCK ----------------------------------------------------------
