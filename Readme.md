@@ -150,7 +150,25 @@ Or add them directly to `settings.json` (already included in the copied file):
 }
 ```
 
-#### 7e. MCPs
+#### 7e. Status bar personalizado
+
+```powershell
+# Copiar el script del status bar
+Copy-Item "$HOME\Documents\PowerShell\claude\statusline-command.sh" "$HOME\.claude\statusline-command.sh"
+```
+
+Luego agregar esto en `~/.claude/settings.json`:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "bash ~/.claude/statusline-command.sh"
+}
+```
+
+Muestra: `path | branch | model | ctx% | 5h% (reset) | 7d% (reset) | session | $cost`
+
+#### 7f. MCPs
 
 Already configured in `settings.json`. Set up your own tokens:
 
