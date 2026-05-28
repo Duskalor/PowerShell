@@ -95,6 +95,7 @@ function newdb { & "$PSScriptRoot\Scripts\newdb.ps1" @args }
 
 
 # --- Git shortcuts -----------------------------------------------------------
+function lg { lazygit }
 function gs   { git status }
 function ga   { git add $args }
 function gc   { git commit -m $args[0] }
@@ -111,10 +112,12 @@ function grs  { git restore $args }
 function gst  { git stash }
 function gstp { git stash pop }
 
-function ghelp {
+function cmds {
     Write-Host ""
-    Write-Host "  Git shortcuts" -ForegroundColor Cyan
-    Write-Host "  -----------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   GIT" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  lg            lazygit (TUI visual)"
     Write-Host "  gs            git status"
     Write-Host "  ga <files>    git add"
     Write-Host "  gc 'msg'      git commit -m"
@@ -123,7 +126,7 @@ function ghelp {
     Write-Host "  gl            git log (graph, ultimos 10)"
     Write-Host ""
     Write-Host "  Ramas" -ForegroundColor Cyan
-    Write-Host "  -----------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  ------------------------------------------" -ForegroundColor DarkGray
     Write-Host "  gb             listar ramas"
     Write-Host "  gsw  <nombre>  cambiar de rama  (git switch)"
     Write-Host "  gswc <nombre>  crear rama nueva (git switch -c)"
@@ -131,13 +134,70 @@ function ghelp {
     Write-Host "  gbD  <nombre>  eliminar rama (forzado)"
     Write-Host ""
     Write-Host "  Archivos / Stash / Merge" -ForegroundColor Cyan
-    Write-Host "  -----------------------------------------" -ForegroundColor DarkGray
-    Write-Host "  grs  <file>   descartar cambios (git restore)"
+    Write-Host "  ------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  grs  <file>    descartar cambios (git restore)"
     Write-Host "  gm  <branch>  git merge"
-    Write-Host "  gst           git stash"
-    Write-Host "  gstp          git stash pop"
+    Write-Host "  gst            git stash"
+    Write-Host "  gstp           git stash pop"
+    Write-Host ""
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   TOOLS (rust)" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  z    <query>   zoxide  - smart cd (aprende tus dirs)"
+    Write-Host "  zi             zoxide  - modo interactivo con fzf"
+    Write-Host "  ls             eza     - listado con iconos"
+    Write-Host "  ll             eza     - listado detallado"
+    Write-Host "  la             eza     - listado con ocultos"
+    Write-Host "  lt             eza     - arbol de directorios (nivel 2)"
+    Write-Host "  lst            eza     - arbol completo sin limite de nivel"
+    Write-Host "  cat  <file>    bat     - visor con syntax highlighting"
+    Write-Host "  fdt  <texto>   rg      - buscar texto en archivos"
+    Write-Host "  fda  <nombre>  fd      - buscar archivos/carpetas"
+    Write-Host ""
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   NAVEGACION" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  d              ir a Proyects"
+    Write-Host "  pr             ir a React"
+    Write-Host "  fr             ir a frontEndMentor"
+    Write-Host "  en             ir a en"
+    Write-Host "  n              ir a Node"
+    Write-Host "  mono           ir a MonoRepo"
+    Write-Host "  as             ir a astro"
+    Write-Host "  l              ir a Laravel"
+    Write-Host "  p              ir a PHP"
+    Write-Host "  ne             ir a Nextjs"
+    Write-Host "  js             ir a javascript"
+    Write-Host "  nes            ir a nestjs"
+    Write-Host "  power          ir a PowerShell + abrir VSCode"
+    Write-Host "  w              abrir explorador en carpeta actual"
+    Write-Host ""
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   DEV" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  vite  <name>   crear proyecto Vite"
+    Write-Host "  vitet <name>   crear proyecto Vite + Tailwind"
+    Write-Host "  next  <name>   crear proyecto Next.js"
+    Write-Host "  astro <name>   crear proyecto Astro"
+    Write-Host "  dev            pnpm run dev"
+    Write-Host "  newdb          crear nueva DB (script)"
+    Write-Host "  rmj            script remaju"
+    Write-Host "  cf <dir> <files>  crear carpeta + archivos .ts"
+    Write-Host ""
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   ENGRAM / MEMORIA" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  engram-push    exportar y pushear memoria a git"
+    Write-Host "  engram-pull    pullear y reimportar memoria desde git"
+    Write-Host ""
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "   ZELLIJ (solo dentro de Zellij)" -ForegroundColor Yellow
+    Write-Host "  ==========================================" -ForegroundColor DarkGray
+    Write-Host "  Alt+F          toggle/crear floating pane en CWD actual"
+    Write-Host "  Alt+F, f       forzar nuevo floating pane"
     Write-Host ""
 }
+function ghelp { cmds }
 
 # â”€â”€â”€ NavegaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function d {
@@ -290,13 +350,6 @@ if ((Test-Path $npmGlobals) -and (($env:PATH -split ';') -notcontains $npmGlobal
 # --- TOOLS BLOCK (zoxide / starship / bat / eza / rg / fd) -------------------
 # Para desinstalar: ejecuta Scripts\uninstall_tools.ps1 y borra este bloque.
 
-# Starship prompt — solo fuera de Zellij (Zellij tiene su propio prompt para CWD tracking)
-if (-not $env:ZELLIJ) {
-    if (Get-Command starship -ErrorAction SilentlyContinue) {
-        Invoke-Expression (&starship init powershell)
-    }
-}
-
 # Zoxide (smart cd: usa 'z' en lugar de 'cd')
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
@@ -304,15 +357,26 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
 
 # eza — listado con iconos y colores
 if (Get-Command eza -ErrorAction SilentlyContinue) {
-    function ls { eza --icons $args }
-    function ll { eza --icons -l $args }
-    function la { eza --icons -la $args }
-    function lt { eza --icons --tree --level=2 $args }
+    function ls  { eza --icons $args }
+    function ll  { eza --icons -l $args }
+    function la  { eza --icons -la $args }
+    function lt  { eza --icons --tree --level=2 --ignore-glob="node_modules|.git|dist|.next" $args }
+    function lst { eza --tree --ignore-glob="node_modules|.git|dist|.next" $args }
 }
 
 # bat — cat con syntax highlighting
 if (Get-Command bat -ErrorAction SilentlyContinue) {
     function cat { bat $args }
+}
+
+# rg — alias fdt (find text)
+if (Get-Command rg -ErrorAction SilentlyContinue) {
+    function fdt { rg $args }
+}
+
+# fd — alias fda (find all)
+if (Get-Command fd -ErrorAction SilentlyContinue) {
+    function fda { fd $args }
 }
 
 # --- END TOOLS BLOCK ----------------------------------------------------------
