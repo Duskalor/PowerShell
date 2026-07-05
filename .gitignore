@@ -1,0 +1,23 @@
+# --- Backups manuales ---
+# git YA es tu historial: cada commit es una version guardada.
+# No hace falta duplicar a mano. Estos patrones evitan que se cuelen.
+*.backup
+*.backup-*
+*.bak
+*.old
+*~
+
+# --- Ruido de sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Ruido de editores ---
+.vscode/
+.idea/
+
+# --- Secretos (NUNCA commitear tokens/claves) ---
+*.env
+.env
+*.secret
+*_secret*
