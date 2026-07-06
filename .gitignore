@@ -21,3 +21,6 @@ desktop.ini
 .env
 *.secret
 *_secret*
+
+# Agent tooling local cache
+.atl/
