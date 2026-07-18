@@ -216,7 +216,17 @@ fi
 if [ -n "$used" ] && [ "$used" != "None" ]; then
   col=$(pct_color "$used")
   used_int=$(printf "%.0f" "$used")
-  seg_ctx=$(printf "${col}ctx %s%%${RESET}" "$used_int")
+  bar_width=8
+  filled=$(( (used_int * bar_width + 50) / 100 ))
+  [ "$filled" -gt "$bar_width" ] && filled=$bar_width
+  [ "$filled" -lt 0 ] && filled=0
+  bar=""
+  i=0
+  while [ "$i" -lt "$bar_width" ]; do
+    if [ "$i" -lt "$filled" ]; then bar="${bar}█"; else bar="${bar}░"; fi
+    i=$((i + 1))
+  done
+  seg_ctx=$(printf "${col}ctx %s %s%%${RESET}" "$bar" "$used_int")
 else
   seg_ctx=$(printf "${DIM}ctx -${RESET}")
 fi
