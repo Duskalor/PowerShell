@@ -1,269 +1,172 @@
-# PowerShell Profile — Dev Environment
+# Dev Environment — Windows
 
-PowerShell 7 profile for Windows with full dev environment setup.
+Every configuration file this machine runs on, in one repository.
 Terminal chain: **Alacritty → Zellij → pwsh**
+
+The repository holds the only copy of each config. Everything under `~/.config`,
+`~/.claude` and `%APPDATA%` is a symbolic link pointing back here, so editing a
+file in either place edits the same bytes. There is no export step to remember
+and no way for the repository to fall behind.
 
 > Run `cmds` in any terminal to see all available commands.
 
 ---
 
-## Fresh Machine Setup
-
-Complete setup in order. Every step is required.
-
----
-
-### 1. Clone the profile
+## Fresh machine
 
 ```powershell
 git clone https://github.com/Duskalor/PowerShell.git "$HOME\Documents\PowerShell"
+cd "$HOME\Documents\PowerShell"
+.\bootstrap.ps1
+```
+
+That is the whole setup. `bootstrap.ps1` reads `manifest.psd1` and links every
+config into place.
+
+Preview it first if you like — nothing is written:
+
+```powershell
+.\bootstrap.ps1 -DryRun
+```
+
+Anything already sitting at a destination is moved into `.backup/<timestamp>/`
+before the link is made, so running this on a machine that is already configured
+will not lose work.
+
+### Symbolic links need permission
+
+Windows only lets a normal user create symbolic links when **Developer Mode** is
+on. Turn it on once:
+
+> Settings → System → For developers → Developer Mode → **On**
+
+The alternative is running `bootstrap.ps1` from an Administrator terminal.
+`bootstrap.ps1` checks for this up front and stops with instructions rather than
+failing on every file.
+
+### Four things bootstrap cannot do for you
+
+| Step | Command |
+|------|---------|
+| Install **IosevkaTerm Nerd Font** | [nerdfonts.com](https://www.nerdfonts.com/font-downloads) — extract, select all `.ttf`, right click → Install for all users |
+| Restore Scoop packages | `scoop import packages\scoop.json` |
+| Restore Winget packages | `winget import -i packages\winget.json` |
+| Install the Engram binary | Download `engram-windows-x64.exe` from [releases](https://github.com/Gentleman-Programming/engram/releases), save as `~\bin\engram.exe`, add `~\bin` to PATH |
+
+The font has to be installed by the operating system, and the package lists
+install hundreds of megabytes that do not belong in a git repository.
+
+---
+
+## Keeping it in sync
+
+```powershell
+.\sync.ps1 -Check   # report drift, change nothing
+.\sync.ps1          # repair it
+```
+
+Run this when something feels off, or wire `sync.ps1 -Check` into your prompt.
+
+**Why this script exists.** Some applications save a file by writing a temporary
+copy and renaming it over the original. That silently replaces the symbolic link
+with a regular file. Claude Code does exactly this when settings change from
+inside the tool. The machine keeps working, nothing looks broken, and the
+repository quietly stops receiving changes.
+
+`sync.ps1` finds those cases and treats the machine as the source of truth: the
+newer content is copied **into** the repository first, then the link is
+restored. Local edits are never discarded. Afterwards, review and commit:
+
+```powershell
+git diff
 ```
 
 ---
 
-### 2. Font — IosevkaTerm Nerd Font
+## What is here
 
-Download and install manually — this is required for icons to render correctly.
+```
+├── bootstrap.ps1                    set the machine up from the repo
+├── sync.ps1                         detect and repair broken links
+├── manifest.psd1                    what gets linked where — the source of truth
+├── lib/dotfiles.ps1                 shared helpers for both scripts
+├── Microsoft.PowerShell_profile.ps1 the pwsh profile (already in place, see below)
+├── home/                            .gitconfig, .wezterm.lua
+├── config/
+│   ├── alacritty/                   alacritty.toml, alacritty-wsl.toml
+│   ├── zellij/                      config.kdl, layouts/
+│   ├── claude/                      settings.json, CLAUDE.md, agents/,
+│   │                                commands/, skills/, output-styles/,
+│   │                                statusline-command.sh
+│   ├── opencode/                    opencode.json, AGENTS.md, agents/,
+│   │                                commands/, plugins/, prompts/, skills/
+│   ├── agents/skills/               shared agent skills
+│   ├── gga/                         Gentleman Guardian Angel
+│   └── git/ignore                   global gitignore
+├── packages/                        scoop.json, winget.json
+├── Scripts/                         standalone helper scripts
+└── Modules/                         vendored PowerShell modules
+```
 
-- Go to: https://www.nerdfonts.com/font-downloads
-- Search for **IosevkaTerm Nerd Font**
-- Extract and install all `.ttf` files (right-click → Install for all users)
+**The profile needs no link.** This repository lives at
+`~\Documents\PowerShell`, which is already PowerShell 7's `$PROFILE` directory.
+Cloning it puts `Microsoft.PowerShell_profile.ps1` exactly where pwsh looks.
+
+### Adding a new config
+
+Copy the file into `config/`, add one row to `manifest.psd1`, run `.\sync.ps1`.
+Nothing else changes — both scripts read the manifest.
 
 ---
 
-### 3. CLI tools via winget
+## What is deliberately not here
+
+Configuration is committed. Caches, history and downloaded binaries are not —
+they are rebuilt by the tools that own them.
+
+| Excluded | Size | Restored by |
+|----------|------|-------------|
+| `~/.claude/projects`, `file-history`, `cache`, `sessions` | ~300 MB | rebuilt as you work |
+| `~/.claude/plugins` | 65 MB | Claude Code plugin install |
+| `~/.config/opencode/node_modules` | 136 MB | `npm install` |
+| `~/.config/zellij/plugins` | 8 MB | downloaded `.wasm`, fetched on demand |
+
+Directories that mix configuration with cache are linked **entry by entry**,
+never as a whole. That is why `manifest.psd1` lists `config/claude/settings.json`
+rather than `config/claude`.
+
+### Machine specific values
+
+`~/.claude/settings.local.json` is never linked and never committed. Tokens,
+project references and per machine MCP servers belong there. `bootstrap.ps1`
+seeds it from `config/claude/settings.local.json.example` on a fresh machine and
+leaves an existing one untouched.
+
+**This repository is public.** Before committing a config, check it for anything
+you would not publish.
+
+### Hardcoded paths
+
+Several configs contain absolute paths that include the Windows user name. They
+are committed as they are, because that is what this machine runs. On a machine
+whose user folder is not `C:\Users\Paul Cruz`, fix these after bootstrap:
+
+| File | What to change |
+|------|----------------|
+| `config/opencode/opencode.json` | 10 `{file:...}` prompt paths, and the `pc-cotizador` MCP command |
+| `config/claude/settings.json` | the `engram` MCP command path |
+| `config/alacritty/alacritty.toml` | `program` — the path to `zellij.exe` |
+| `config/zellij/config.kdl` | two `Run` keybindings pointing at `zellij.exe` and `layouts/` |
+
+Find them all at once:
 
 ```powershell
-# Terminal
-winget install Alacritty.Alacritty
-winget install Zellij.Zellij
-
-# Shell tools (Rust-based)
-winget install ajeetdsouza.zoxide
-winget install sharkdp.bat
-winget install eza-community.eza
-winget install BurntSushi.ripgrep.MSVC
-winget install sharkdp.fd
-winget install junegunn.fzf
-winget install JesseDuffield.lazygit
+rg -F "C:\Users" config
 ```
 
----
-
-### 4. PowerShell modules
-
-```powershell
-Install-Module Terminal-Icons -Scope CurrentUser -Force
-Install-Module PSReadLine -Scope CurrentUser -Force
-```
-
----
-
-### 5. Alacritty config
-
-```powershell
-New-Item -ItemType Directory -Path "$HOME\AppData\Roaming\alacritty" -Force | Out-Null
-Copy-Item "$HOME\Documents\PowerShell\alacritty.toml" "$HOME\AppData\Roaming\alacritty\alacritty.toml"
-```
-
-The config sets:
-- Font: `IosevkaTerm NF` size 16
-- Shell: `zellij.exe` (Alacritty launches Zellij directly)
-- Opacity: 90%
-- Color scheme: dark with lavender accents
-
----
-
-### 6. Zellij config
-
-```powershell
-New-Item -ItemType Directory -Path "$HOME\.config\zellij" -Force | Out-Null
-Copy-Item -Recurse "$HOME\Documents\PowerShell\.config\zellij\*" "$HOME\.config\zellij\"
-```
-
-The config sets:
-- Default shell: `pwsh`
-- Custom keybinds (vim-style navigation)
-- Plugins: `zjstatus` (statusbar), `zellij_forgot` (keybind helper)
-- Layouts: `work.kdl`, `work_vertical.kdl`, `work_oldWorld.kdl`
-
----
-
-### 7. Claude Code
-
-#### 7a. Install Claude Code
-
-```powershell
-winget install Anthropic.Claude
-# or via npm:
-npm install -g @anthropic-ai/claude-code
-```
-
-#### 7b. Engram binary
-
-Engram is a persistent memory MCP server. Download the binary:
-
-- Go to: https://github.com/Gentleman-Programming/engram/releases
-- Download `engram-windows-x64.exe`
-- Place it at: `C:\Users\<you>\bin\engram.exe`
-- Make sure `C:\Users\<you>\bin` is in your PATH
-
-#### 7c. Copy global config files
-
-```powershell
-# Create .claude directory
-New-Item -ItemType Directory -Path "$HOME\.claude" -Force | Out-Null
-
-# Copy global settings
-Copy-Item "$HOME\Documents\PowerShell\.claude\settings.json" "$HOME\.claude\settings.json"
-
-# Copy CLAUDE.md (global instructions)
-Copy-Item "$HOME\Documents\PowerShell\.claude\CLAUDE.md" "$HOME\.claude\CLAUDE.md"
-```
-
-#### 7d. Install plugins
-
-Open a terminal and run Claude Code once, then install:
-
-```powershell
-claude
-# Inside Claude Code, run:
-# /plugins install engram@Gentleman-Programming/engram
-# /plugins install superpowers@claude-plugins-official
-# /plugins install context7@claude-plugins-official
-# /plugins install frontend-design@claude-plugins-official
-```
-
-Or add them directly to `settings.json` (already included in the copied file):
-
-```json
-"enabledPlugins": {
-  "engram@engram": true,
-  "frontend-design@claude-plugins-official": true,
-  "superpowers@claude-plugins-official": true,
-  "context7@claude-plugins-official": true
-},
-"extraKnownMarketplaces": {
-  "engram": {
-    "source": { "source": "github", "repo": "Gentleman-Programming/engram" }
-  }
-}
-```
-
-#### 7e. Status bar personalizado
-
-```powershell
-# Copiar el script del status bar
-Copy-Item "$HOME\Documents\PowerShell\claude\statusline-command.sh" "$HOME\.claude\statusline-command.sh"
-```
-
-Luego agregar esto en `~/.claude/settings.json`:
-
-```json
-"statusLine": {
-  "type": "command",
-  "command": "bash ~/.claude/statusline-command.sh"
-}
-```
-
-Muestra: `path | branch | model | ctx% | 5h% (reset) | 7d% (reset) | session | $cost`
-
-#### 7f. MCPs
-
-Already configured in `settings.json`. Set up your own tokens:
-
-| MCP | What it is | Config |
-|-----|-----------|--------|
-| **engram** | Persistent memory | `engram.exe mcp --tools=agent` |
-| **supabase** | DB via MCP | Replace `project_ref` with your own |
-
-```json
-"mcpServers": {
-  "engram": {
-    "command": "C:\\Users\\<you>\\bin\\engram.exe",
-    "args": ["mcp", "--tools=agent"]
-  },
-  "supabase": {
-    "type": "http",
-    "url": "https://mcp.supabase.com/mcp?project_ref=YOUR_PROJECT_REF"
-  }
-}
-```
-
----
-
-### 8. OpenCode
-
-#### 8a. Install OpenCode
-
-```powershell
-winget install OpenCode.OpenCode
-# or via npm:
-npm install -g opencode-ai
-```
-
-#### 8b. Copy config
-
-```powershell
-New-Item -ItemType Directory -Path "$HOME\.config\opencode" -Force | Out-Null
-Copy-Item "$HOME\Documents\PowerShell\.config\opencode\opencode.json" "$HOME\.config\opencode\opencode.json"
-Copy-Item "$HOME\Documents\PowerShell\.config\opencode\AGENTS.md" "$HOME\.config\opencode\AGENTS.md"
-```
-
-#### 8c. Agents included
-
-| Agent | Mode | Description |
-|-------|------|-------------|
-| `gentleman` | primary | Senior Architect mentor — helpful first, challenging when needed |
-| `sdd-orchestrator` | primary | Agent Teams Orchestrator — delegates all work to sub-agents |
-| `english-teacher` | all | Personal English speaking coach with Engram memory |
-| `sdd-apply/spec/design/tasks/verify/archive/explore/propose/init` | subagent | SDD pipeline sub-agents |
-
-#### 8d. MCPs (OpenCode)
-
-Already in `opencode.json`. Configure your own tokens:
-
-| MCP | Type | Notes |
-|-----|------|-------|
-| **engram** | local | `engram mcp` — same binary as Claude Code |
-| **context7** | remote | `https://mcp.context7.com/mcp` — no auth needed |
-| **notion** | local | `npx @notionhq/notion-mcp-server` — set `NOTION_TOKEN` env var |
-| **supabase** | remote | Replace `project_ref` with your own |
-
-Set env vars:
-```powershell
-# Add to your profile or system env vars
-$env:NOTION_TOKEN = "your_notion_integration_token"
-```
-
----
-
-### 9. Restore Engram memory (optional)
-
-If you have a previous engram backup:
-
-```powershell
-engram-pull   # pulls from your git backup and reimports
-```
-
-If starting fresh, memory builds automatically as you work.
-
----
-
-### 10. Verify everything works
-
-```powershell
-# Restart terminal, then:
-cmds          # should show all profile commands
-z             # zoxide initialized
-lg            # lazygit opens
-bat --version
-eza --version
-rg --version
-fd --version
-fzf --version
-lazygit --version
-```
+`config/claude/statusline-command.sh` and `config/opencode/plugins/engram.ts`
+also name absolute paths, but both fall back to a PATH lookup first, so they
+keep working without edits.
 
 ---
 
@@ -340,9 +243,7 @@ lazygit --version
 | `cf <path> <files>` | Create folder + files (`.ts` default) |
 | `newdb` | Spin up Postgres via Docker |
 | `rmj [name]` | Parse judicial HTML to searchable TXT + HTML |
-| `engram-push` | Export + push AI memory to GitHub |
-| `engram-pull` | Pull + import AI memory from GitHub |
-| `cmds` | Show all profile commands |
+| `cmds` | Show all profile commands (`ghelp` is an alias) |
 
 ### Zellij (inside Zellij only)
 
