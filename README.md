@@ -3,10 +3,15 @@
 Every configuration file this machine runs on, in one repository.
 Terminal chain: **Alacritty → Zellij → pwsh**
 
-The repository holds the only copy of each config. Everything under `~/.config`,
-`~/.claude` and `%APPDATA%` is a symbolic link pointing back here, so editing a
-file in either place edits the same bytes. There is no export step to remember
-and no way for the repository to fall behind.
+The repository holds the only copy of each config. Almost everything under
+`~/.config`, `~/.claude` and `%APPDATA%` is a symbolic link pointing back here,
+so editing a file in either place edits the same bytes. There is no export step
+to remember.
+
+Three configs cannot work that way, because they contain absolute paths that
+include the Windows user name and the tools reading them do not resolve a bare
+command from PATH. Those are stored as `.template` files with tokens and
+written out as real files — see [Two mechanisms](#two-mechanisms).
 
 > Run `cmds` in any terminal to see all available commands.
 
@@ -101,23 +106,91 @@ git diff
 
 ---
 
+## Two mechanisms
+
+| | Linked | Rendered |
+|---|---|---|
+| Entries | 25 | 3 |
+| What is on the machine | a symbolic link into this repository | a real file written from a `.template` |
+| Edit on the machine | is an edit to the repository, immediately | needs `sync.ps1` to travel back |
+| Declared in | `manifest.psd1` → `Links` | `manifest.psd1` → `Rendered` |
+
+Linking is the default and the better mechanism. Rendering exists for the three
+configs that cannot be identical on two machines:
+
+| Config | Why it cannot be a link |
+|---|---|
+| `alacritty.toml` | the absolute path to the `zellij.exe` it launches as the shell |
+| `zellij/config.kdl` | the same binary, plus two layout paths |
+| `opencode.json` | ten agent prompt files and one MCP command |
+
+None of those three tools resolves a bare command name from PATH, so the path
+has to be absolute — and an absolute path under `C:\Users\<you>` is wrong on
+any machine but the one it was written on.
+
+### Tokens
+
+A template holds tokens instead. Each comes in three spellings because the file
+formats disagree on how a Windows path is written:
+
+| Token | Expands to | Used by |
+|---|---|---|
+| `{HOME}` | `C:\Users\you` | plain strings |
+| `{HOME/}` | `C:/Users/you` | zellij, opencode |
+| `{HOME\\}` | `C:\\Users\\you` | JSON and TOML string literals |
+
+`HOME`, `APPDATA` and `LOCALAPPDATA` are available. Longest expansion wins, so
+`{LOCALAPPDATA}` is never mistaken for `{HOME}\AppData\Local`.
+
+### The way back
+
+A rendered file is an ordinary file, so an edit made on the machine does not
+reach the repository on its own. That is the exact drift this repository was
+built to prevent, so `sync.ps1` covers it: it compares each rendered file
+against what its template produces, and when they differ it runs the expansion
+**backwards** — this machine's own paths become tokens again — and writes the
+result into the template.
+
+```powershell
+.\sync.ps1 -Check   # "drifted — edited on this machine, the template is behind"
+.\sync.ps1          # "rescued — machine edits tokenized back into the template"
+```
+
+Nothing is lost in either direction. Edit the rendered file or edit the
+template, whichever is closer to hand.
+
+### Adding another one
+
+Move its row in `manifest.psd1` from `Links` to `Rendered`, then let the
+inverse function write the template for you rather than hand-editing paths:
+
+```powershell
+. .\lib\dotfiles.ps1
+$text = Read-DotfilesText .\config\foo\bar.toml
+Write-DotfilesText -Path .\config\foo\bar.toml.template -Text (ConvertTo-DotfilesTemplateText $text)
+git rm .\config\foo\bar.toml
+.\bootstrap.ps1
+```
+
+---
+
 ## What is here
 
 ```
 ├── install.ps1                      bare machine to configured, in one command
 ├── bootstrap.ps1                    set the machine up from the repo
-├── sync.ps1                         detect and repair broken links
-├── manifest.psd1                    what gets linked where — the source of truth
+├── sync.ps1                         detect and repair links and template drift
+├── manifest.psd1                    what is linked or rendered where — the source of truth
 ├── lib/dotfiles.ps1                 shared helpers for both scripts
 ├── Microsoft.PowerShell_profile.ps1 the pwsh profile (already in place, see below)
 ├── home/                            .gitconfig, .wezterm.lua
 ├── config/
-│   ├── alacritty/                   alacritty.toml, alacritty-wsl.toml
-│   ├── zellij/                      config.kdl, layouts/
+│   ├── alacritty/                   alacritty.toml.template, alacritty-wsl.toml
+│   ├── zellij/                      config.kdl.template, layouts/
 │   ├── claude/                      settings.json, CLAUDE.md, agents/,
 │   │                                commands/, skills/, output-styles/,
 │   │                                statusline-command.sh
-│   ├── opencode/                    opencode.json, AGENTS.md, agents/,
+│   ├── opencode/                    opencode.json.template, AGENTS.md, agents/,
 │   │                                commands/, plugins/, prompts/, skills/
 │   ├── agents/skills/               shared agent skills
 │   ├── gga/                         Gentleman Guardian Angel
@@ -166,26 +239,25 @@ you would not publish.
 
 ### Hardcoded paths
 
-Several configs contain absolute paths that include the Windows user name. They
-are committed as they are, because that is what this machine runs. On a machine
-whose user folder is not `C:\Users\Paul Cruz`, fix these after bootstrap:
+There is nothing left to fix by hand. The three configs that carried absolute
+paths with the Windows user name are rendered from templates — see
+[Two mechanisms](#two-mechanisms) — so bootstrap writes the right paths for
+whatever machine it runs on.
 
-| File | What to change |
+Two files still name this machine and are deliberately left as they are:
+
+| File | Why it is fine |
 |------|----------------|
-| `config/opencode/opencode.json` | 10 `{file:...}` prompt paths, and the `pc-cotizador` MCP command |
-| `config/claude/settings.json` | the `engram` MCP command path |
-| `config/alacritty/alacritty.toml` | `program` — the path to `zellij.exe` |
-| `config/zellij/config.kdl` | two `Run` keybindings pointing at `zellij.exe` and `layouts/` |
+| `config/claude/statusline-command.sh` | the absolute Python path is an `elif` branch, reached only after the PATH lookup fails |
+| `config/opencode/plugins/engram.ts` | `process.env.ENGRAM_BIN ?? Bun.which("engram") ?? <path>` — the path is the last resort |
 
-Find them all at once:
+To confirm nothing has crept back in:
 
 ```powershell
-rg -F "C:\Users" config
+rg -F "C:\Users" config home
 ```
 
-`config/claude/statusline-command.sh` and `config/opencode/plugins/engram.ts`
-also name absolute paths, but both fall back to a PATH lookup first, so they
-keep working without edits.
+Anything that turns up in a `Links` entry is a bug. Move it to `Rendered`.
 
 ---
 
