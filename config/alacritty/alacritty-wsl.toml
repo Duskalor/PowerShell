@@ -1,0 +1,121 @@
+# Alacritty config dedicated to WSL — opens directly into the WSL default distro.
+# Default `alacritty.toml` is left untouched and behaves as before.
+# Launch this profile with: alacritty.exe --config-file <path-to-this-file>
+
+[font]
+size = 14
+
+[font.normal]
+family = "IosevkaTerm NFM"
+style  = "Regular"
+
+[font.bold]
+family = "IosevkaTerm NFM"
+style  = "Bold"
+
+[font.italic]
+family = "IosevkaTerm NFM"
+style  = "Italic"
+
+[font.bold_italic]
+family = "IosevkaTerm NFM"
+style  = "Bold Italic"
+
+[window]
+opacity = 0.90
+decorations = "Full"
+startup_mode = "Windowed"
+dynamic_title = false
+
+[general]
+live_config_reload = false
+
+[env]
+TERM = "xterm-256color"
+COLORTERM = "truecolor"
+
+[terminal.shell]
+program = "C:\\Windows\\System32\\wsl.exe"
+# `~` makes wsl land in /home/paul (Linux home), not /mnt/c/...
+# zsh is the user's default shell, and the .zshrc auto-launches Zellij — no extra args needed.
+args = ["--cd", "~"]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Catppuccin Mocha — official palette
+# ──────────────────────────────────────────────────────────────────────────────
+
+[colors.primary]
+background = "#000000"
+foreground = "#cdd6f4"
+dim_foreground    = "#7f849c"
+bright_foreground = "#cdd6f4"
+
+[colors.cursor]
+cursor = "#f5e0dc"
+text   = "#1e1e2e"
+
+[colors.vi_mode_cursor]
+cursor = "#b4befe"
+text   = "#1e1e2e"
+
+[colors.selection]
+background = "#f5e0dc"
+text       = "#1e1e2e"
+
+[colors.search.matches]
+background = "#a6adc8"
+foreground = "#1e1e2e"
+
+[colors.search.focused_match]
+background = "#a6e3a1"
+foreground = "#1e1e2e"
+
+[colors.hints.start]
+background = "#f9e2af"
+foreground = "#1e1e2e"
+
+[colors.hints.end]
+background = "#a6adc8"
+foreground = "#1e1e2e"
+
+[colors.footer_bar]
+background = "#000000"
+foreground = "#cdd6f4"
+
+[colors.normal]
+black   = "#45475a"
+red     = "#f38ba8"
+green   = "#a6e3a1"
+yellow  = "#f9e2af"
+blue    = "#89b4fa"
+magenta = "#f5c2e7"
+cyan    = "#94e2d5"
+white   = "#bac2de"
+
+[colors.bright]
+black   = "#585b70"
+red     = "#f38ba8"
+green   = "#a6e3a1"
+yellow  = "#f9e2af"
+blue    = "#89b4fa"
+magenta = "#f5c2e7"
+cyan    = "#94e2d5"
+white   = "#a6adc8"
+
+[colors.dim]
+black   = "#45475a"
+red     = "#f38ba8"
+green   = "#a6e3a1"
+yellow  = "#f9e2af"
+blue    = "#89b4fa"
+magenta = "#f5c2e7"
+cyan    = "#94e2d5"
+white   = "#bac2de"
+
+[[colors.indexed_colors]]
+index = 16
+color = "#fab387"
+
+[[colors.indexed_colors]]
+index = 17
+color = "#f5e0dc"
