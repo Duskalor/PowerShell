@@ -1,38 +1,28 @@
-# Paquetes instalados
+# Package lists
 
-Guardar la lista de paquetes hace que tu Windows sea **reconstruible de verdad**:
-no solo recuperás el perfil de PowerShell, sino TODAS tus apps de una.
+`scoop.json` and `winget.json` are exported snapshots of what is installed on
+this machine. They make Windows genuinely rebuildable: the profile comes back
+from the repository, the applications come back from these two files.
 
-## Cómo exportar (correr en Windows)
+## Restore on a new machine
 
-### Scoop
 ```powershell
-scoop export > packages/scoop.json
+scoop import packages\scoop.json
+winget import -i packages\winget.json
 ```
 
-### Winget
-```powershell
-winget export -o packages/winget.json
-```
+`bootstrap.ps1` does not run these for you. They install hundreds of megabytes
+and take a long time, so the choice of when stays yours.
 
-Después commiteás los archivos generados:
+## Re-export after installing something
+
 ```powershell
+scoop export | Out-File -Encoding utf8 packages\scoop.json
+winget export -o packages\winget.json
 git add packages/
 git commit -m "chore: update package lists"
-git push
 ```
 
-## Cómo restaurar en una máquina nueva
-
-### Scoop
-```powershell
-scoop import packages/scoop.json
-```
-
-### Winget
-```powershell
-winget import -i packages/winget.json
-```
-
-> Tip: corré el export cada vez que instales algo importante, así el repo
-> refleja siempre el estado real de tu máquina.
+`winget export` prints a warning for each installed application that has no
+winget source, such as manually installed or Store applications. That is
+expected; those entries are simply left out of the file.

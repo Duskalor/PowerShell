@@ -1,0 +1,46 @@
+{
+    "buckets": [
+        {
+            "Name": "main",
+            "Source": "https://github.com/ScoopInstaller/Main.git",
+            "Updated": "2026-04-08T15:33:43-05:00",
+            "Manifests": 1492
+        },
+        {
+            "Name": "extras",
+            "Source": "https://github.com/ScoopInstaller/Extras",
+            "Updated": "2026-04-08T19:51:31-05:00",
+            "Manifests": 2290
+        }
+    ],
+    "apps": [
+        {
+            "Name": "jq",
+            "Version": "1.8.1",
+            "Info": "",
+            "Updated": "2026-04-03T19:25:22.8820284-05:00",
+            "Source": "main"
+        },
+        {
+            "Name": "opencode",
+            "Version": "1.2.27",
+            "Info": "",
+            "Updated": "2026-03-17T11:49:39.0424139-05:00",
+            "Source": "C:\\Users\\Paul Cruz\\scoop\\buckets\\main\\bucket\\opencode.json"
+        },
+        {
+            "Name": "railway",
+            "Version": "3.22.2",
+            "Info": "",
+            "Updated": "2025-03-11T21:40:43.0947191-05:00",
+            "Source": "main"
+        },
+        {
+            "Name": "vim",
+            "Version": "9.1.0",
+            "Info": "",
+            "Updated": "2025-03-16T17:50:22.0360534-05:00",
+            "Source": "main"
+        }
+    ]
+}
