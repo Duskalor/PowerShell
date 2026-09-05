@@ -20,12 +20,11 @@
         @{ Repo = 'home/.gitconfig';                    Target = '{HOME}/.gitconfig';                         Type = 'File' }
         @{ Repo = 'home/.wezterm.lua';                  Target = '{HOME}/.wezterm.lua';                       Type = 'File' }
 
-        # --- Alacritty ---
-        @{ Repo = 'config/alacritty/alacritty.toml';    Target = '{APPDATA}/alacritty/alacritty.toml';        Type = 'File' }
+        # --- Alacritty (alacritty.toml is rendered, see Rendered below) ---
         @{ Repo = 'config/alacritty/alacritty-wsl.toml';Target = '{APPDATA}/alacritty/alacritty-wsl.toml';    Type = 'File' }
 
         # --- Zellij (plugins/ stays local: downloaded .wasm binaries) ---
-        @{ Repo = 'config/zellij/config.kdl';           Target = '{HOME}/.config/zellij/config.kdl';          Type = 'File' }
+        # config.kdl is rendered, see Rendered below.
         @{ Repo = 'config/zellij/layouts';              Target = '{HOME}/.config/zellij/layouts';             Type = 'Directory' }
 
         # --- Git ---
@@ -44,7 +43,7 @@
         @{ Repo = 'config/agents/skills';               Target = '{HOME}/.agents/skills';                     Type = 'Directory' }
 
         # --- OpenCode (entry by entry: node_modules stays local) ---
-        @{ Repo = 'config/opencode/opencode.json';      Target = '{HOME}/.config/opencode/opencode.json';     Type = 'File' }
+        # opencode.json is rendered, see Rendered below.
         @{ Repo = 'config/opencode/AGENTS.md';          Target = '{HOME}/.config/opencode/AGENTS.md';         Type = 'File' }
         @{ Repo = 'config/opencode/tui.json';           Target = '{HOME}/.config/opencode/tui.json';          Type = 'File' }
         @{ Repo = 'config/opencode/package.json';       Target = '{HOME}/.config/opencode/package.json';      Type = 'File' }
@@ -61,8 +60,38 @@
         @{ Repo = 'config/gga/config';                  Target = '{HOME}/.config/gga/config';                 Type = 'File' }
     )
 
-    # Files the bootstrap creates from a template when they do not exist.
-    # These hold machine specific values and are never committed.
+    <#
+        Configs that cannot be a symbolic link.
+
+        These three contain absolute paths carrying the Windows user name, and
+        none of the tools reading them resolves a bare command from PATH. On a
+        machine with a different user name the paths are wrong, the terminal
+        never starts and the agents never load.
+
+        They are stored as .template files with tokens and written out as real
+        files. Three spellings exist per token because the formats disagree on
+        how a Windows path is written:
+
+            {HOME}    C:\Users\me      native
+            {HOME/}   C:/Users/me      forward slashes
+            {HOME\\}  C:\\Users\\me    escaped, inside a JSON or TOML string
+
+        Available: HOME, APPDATA, LOCALAPPDATA.
+
+        The cost of not being a link is that an edit made on the machine does
+        not reach the repository on its own. sync.ps1 closes that: it detects a
+        rendered file that no longer matches its template and turns the
+        machine's paths back into tokens.
+    #>
+    Rendered = @(
+        @{ Template = 'config/alacritty/alacritty.toml.template'; Target = '{APPDATA}/alacritty/alacritty.toml' }
+        @{ Template = 'config/zellij/config.kdl.template';        Target = '{HOME}/.config/zellij/config.kdl' }
+        @{ Template = 'config/opencode/opencode.json.template';   Target = '{HOME}/.config/opencode/opencode.json' }
+    )
+
+    # Files the bootstrap creates from an example when they do not exist, then
+    # never touches again. These hold machine specific values and secrets, and
+    # are never committed.
     Templates = @(
         @{ Example = 'config/claude/settings.local.json.example'; Target = '{HOME}/.claude/settings.local.json' }
     )

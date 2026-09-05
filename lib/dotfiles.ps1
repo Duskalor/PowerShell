@@ -35,8 +35,9 @@ function Expand-DotfilesToken {
     param([Parameter(Mandatory)][string]$Path)
 
     $expanded = $Path.
-        Replace('{HOME}', $HOME).
-        Replace('{APPDATA}', $env:APPDATA)
+        Replace('{LOCALAPPDATA}', $env:LOCALAPPDATA).
+        Replace('{APPDATA}', $env:APPDATA).
+        Replace('{HOME}', $HOME)
     $expanded.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 }
 
@@ -113,6 +114,129 @@ function New-DotfilesParent {
     if ($parent -and -not (Test-Path -LiteralPath $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
+}
+
+<#
+    ---------------------------------------------------------------------------
+    Rendered templates
+    ---------------------------------------------------------------------------
+
+    A symbolic link cannot hold a value that differs per machine. Three configs
+    contain absolute paths that include the Windows user name, and none of the
+    three tools reading them resolves a bare command from PATH:
+
+        alacritty.toml     the zellij binary it launches as the shell
+        zellij/config.kdl  the same binary, plus two layout paths
+        opencode.json      ten agent prompt files and one MCP command
+
+    On a machine with a different user name those paths are simply wrong, so
+    the terminal never starts and the agents never load. Those three are kept
+    as .template files carrying tokens, and written out as real files.
+
+    That trades away the property the rest of this repository relies on: a real
+    file receives edits that the repository never sees. ConvertTo-DotfilesTemplateText
+    is the way back. It is the exact inverse of the expansion, so sync.ps1 can
+    take a rendered file that was edited on the machine, turn the machine's own
+    paths back into tokens, and write it into the template. Nothing is lost, in
+    either direction.
+#>
+
+<#
+    Token expansions, longest first.
+
+    Order matters both ways. %LOCALAPPDATA% and %APPDATA% both begin with the
+    home directory, so replacing HOME first would leave "{HOME}\AppData\Local"
+    behind and no LOCALAPPDATA token would ever match again.
+#>
+function Get-DotfilesTokenMap {
+    $map = [ordered]@{}
+    if ($env:LOCALAPPDATA) { $map['LOCALAPPDATA'] = $env:LOCALAPPDATA.TrimEnd('\', '/') }
+    if ($env:APPDATA)      { $map['APPDATA']      = $env:APPDATA.TrimEnd('\', '/') }
+    if ($HOME)             { $map['HOME']         = $HOME.TrimEnd('\', '/') }
+    $map
+}
+
+<#
+    Turn tokens into this machine's paths.
+
+    Each token comes in three spellings because the three file formats disagree
+    on how a Windows path is written:
+
+        {HOME}    C:\Users\me        native, for a plain string
+        {HOME/}   C:/Users/me        forward slashes, as zellij and opencode use
+        {HOME\\}  C:\\Users\\me      escaped, as a JSON or TOML string literal
+#>
+function Expand-DotfilesTemplateText {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+
+    foreach ($entry in (Get-DotfilesTokenMap).GetEnumerator()) {
+        $native = $entry.Value
+        $Text = $Text.
+            Replace("{$($entry.Key)\\}", $native.Replace('\', '\\')).
+            Replace("{$($entry.Key)/}",  $native.Replace('\', '/')).
+            Replace("{$($entry.Key)}",   $native)
+    }
+    $Text
+}
+
+# The inverse. Same order, so the most specific path wins here too.
+function ConvertTo-DotfilesTemplateText {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+
+    foreach ($entry in (Get-DotfilesTokenMap).GetEnumerator()) {
+        $native = $entry.Value
+        $Text = $Text.
+            Replace($native.Replace('\', '\\'), "{$($entry.Key)\\}").
+            Replace($native.Replace('\', '/'),  "{$($entry.Key)/}").
+            Replace($native,                    "{$($entry.Key)}")
+    }
+    $Text
+}
+
+<#
+    Read and write without touching the bytes.
+
+    Get-Content and Set-Content rewrite line endings and add a BOM. These files
+    are read by alacritty, zellij and opencode, all of which want LF and none of
+    which want a BOM, so the raw .NET calls are the correct tool here.
+#>
+function Read-DotfilesText {
+    param([Parameter(Mandatory)][string]$Path)
+    [System.IO.File]::ReadAllText($Path)
+}
+
+function Write-DotfilesText {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text
+    )
+    [System.IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+<#
+    Classify a rendered destination without touching it.
+
+    Current  matches what the template produces on this machine
+    Drifted  is a real file, but its content is not what the template says
+    Stale    is still a symbolic link, left over from before this file was
+             templated. Writing to it would write through the link and into
+             the repository, so it has to be removed rather than overwritten.
+    Missing  nothing is there yet
+    Orphan   the manifest names a template that is not in the repository
+#>
+function Get-DotfilesRenderState {
+    param(
+        [Parameter(Mandatory)][string]$Template,
+        [Parameter(Mandatory)][string]$Target
+    )
+
+    if (-not (Test-Path -LiteralPath $Template)) { return 'Orphan' }
+    if (-not (Test-Path -LiteralPath $Target))   { return 'Missing' }
+    if (Test-DotfilesSymlink -Path $Target)      { return 'Stale' }
+
+    $expected = Expand-DotfilesTemplateText (Read-DotfilesText $Template)
+    if ($expected -eq (Read-DotfilesText $Target)) { return 'Current' }
+    'Drifted'
 }
 
 <#

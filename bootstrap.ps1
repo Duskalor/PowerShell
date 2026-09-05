@@ -52,7 +52,7 @@ if (-not $DryRun -and -not (Test-SymlinkCapability)) {
     exit 1
 }
 
-$counts = @{ Linked = 0; Created = 0; Replaced = 0; Skipped = 0; Failed = 0 }
+$counts = @{ Linked = 0; Created = 0; Replaced = 0; Rendered = 0; Skipped = 0; Failed = 0 }
 
 foreach ($link in $manifest.Links) {
     $source = Join-Path $root $link.Repo.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
@@ -117,6 +117,72 @@ foreach ($link in $manifest.Links) {
     }
 }
 
+# Configs that carry this machine's own paths cannot be a link. Write them out
+# with the tokens expanded. Like the links above, the repository wins here: a
+# destination holding something else is backed up first, never overwritten.
+foreach ($render in $manifest.Rendered) {
+    $templatePath = Join-Path $root $render.Template.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+    $target       = Expand-DotfilesToken -Path $render.Target
+    $state        = Get-DotfilesRenderState -Template $templatePath -Target $target
+    $label        = $render.Template
+
+    if ($state -eq 'Current') {
+        $counts.Linked++
+        Write-Verbose "already rendered: $label"
+        continue
+    }
+    elseif ($state -eq 'Orphan') {
+        $counts.Skipped++
+        Write-Host "  skip     $label" -ForegroundColor DarkGray
+        Write-Host "           not in the repository, nothing to render" -ForegroundColor DarkGray
+        continue
+    }
+
+    if ($DryRun) {
+        $action = switch ($state) {
+            'Missing' { 'would render' }
+            'Stale'   { 'would render' }
+            'Drifted' { 'would back up' }
+        }
+        Write-Host "  $action $label" -ForegroundColor Yellow
+        Write-Host "           -> $target" -ForegroundColor DarkGray
+        continue
+    }
+
+    try {
+        if ($state -eq 'Drifted') {
+            if ($Force) {
+                Remove-Item -LiteralPath $target -Force
+            } else {
+                $relative = $target.Replace($HOME, '').TrimStart('\', '/')
+                $saveTo   = Join-Path $backupDir $relative
+                New-DotfilesParent -Path $saveTo
+                Move-Item -LiteralPath $target -Destination $saveTo -Force
+            }
+        } elseif ($state -eq 'Stale') {
+            # Still a link from before this file was templated. Writing to it
+            # would write straight through into the repository, so drop the
+            # link itself first.
+            Remove-DotfilesLink -Path $target
+        }
+
+        New-DotfilesParent -Path $target
+        Write-DotfilesText -Path $target -Text (Expand-DotfilesTemplateText (Read-DotfilesText $templatePath))
+
+        if ($state -eq 'Drifted') {
+            $counts.Replaced++
+            Write-Host "  replaced $label" -ForegroundColor Green
+        } else {
+            $counts.Rendered++
+            Write-Host "  rendered $label" -ForegroundColor Green
+        }
+    } catch {
+        $counts.Failed++
+        Write-Host "  FAILED   $label" -ForegroundColor Red
+        Write-Host "           $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 # Machine specific values live outside git. Seed them from their examples so a
 # fresh machine starts with a valid file to edit instead of a missing one.
 foreach ($template in $manifest.Templates) {
@@ -138,7 +204,7 @@ foreach ($template in $manifest.Templates) {
 }
 
 Write-Host ''
-Write-Host "  linked $($counts.Created)  replaced $($counts.Replaced)  already ok $($counts.Linked)  skipped $($counts.Skipped)  failed $($counts.Failed)"
+Write-Host "  linked $($counts.Created)  rendered $($counts.Rendered)  replaced $($counts.Replaced)  already ok $($counts.Linked)  skipped $($counts.Skipped)  failed $($counts.Failed)"
 if (-not $DryRun -and $counts.Replaced -gt 0 -and -not $Force) {
     Write-Host "  previous files kept in $backupDir" -ForegroundColor DarkGray
 }
