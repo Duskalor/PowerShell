@@ -143,10 +143,9 @@ if (-not $DryRun -and $counts.Replaced -gt 0 -and -not $Force) {
     Write-Host "  previous files kept in $backupDir" -ForegroundColor DarkGray
 }
 Write-Host ''
-Write-Host '  Still to do by hand (see README):' -ForegroundColor Cyan
-Write-Host '    - install IosevkaTerm Nerd Font'
-Write-Host '    - restore packages:  scoop import packages/scoop.json'
-Write-Host '                         winget import -i packages/winget.json'
-Write-Host '    - place engram.exe in ~/bin and add it to PATH'
+Write-Host '  Configuration is linked. Applications, font and binaries belong to' -ForegroundColor Cyan
+Write-Host '  install.ps1, which runs all of that and then calls this script:' -ForegroundColor Cyan
+Write-Host '    .\install.ps1 -DryRun    read the plan first'
+Write-Host '    .\install.ps1            toolchain, Nerd Font, engram, then link'
 Write-Host ''
 if ($counts.Failed -gt 0) { exit 1 }

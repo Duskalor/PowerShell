@@ -1,0 +1,36 @@
+{
+	"$schema" : "https://aka.ms/winget-packages.schema.2.0.json",
+	"CreationDate" : "2026-09-05T00:00:00.000-00:00",
+	"Sources" :
+	[
+		{
+			"Packages" :
+			[
+				{ "PackageIdentifier" : "Git.Git" },
+				{ "PackageIdentifier" : "GitHub.cli" },
+				{ "PackageIdentifier" : "Microsoft.PowerShell" },
+				{ "PackageIdentifier" : "Alacritty.Alacritty" },
+				{ "PackageIdentifier" : "arndawg.zellij-windows" },
+				{ "PackageIdentifier" : "BurntSushi.ripgrep.MSVC" },
+				{ "PackageIdentifier" : "sharkdp.fd" },
+				{ "PackageIdentifier" : "sharkdp.bat" },
+				{ "PackageIdentifier" : "eza-community.eza" },
+				{ "PackageIdentifier" : "junegunn.fzf" },
+				{ "PackageIdentifier" : "ajeetdsouza.zoxide" },
+				{ "PackageIdentifier" : "JesseDuffield.lazygit" },
+				{ "PackageIdentifier" : "OpenJS.NodeJS.22" },
+				{ "PackageIdentifier" : "Microsoft.VisualStudioCode" },
+				{ "PackageIdentifier" : "Anthropic.Claude" },
+				{ "PackageIdentifier" : "MSYS2.MSYS2" }
+			],
+			"SourceDetails" :
+			{
+				"Argument" : "https://cdn.winget.microsoft.com/cache",
+				"Identifier" : "Microsoft.Winget.Source_8wekyb3d8bbwe",
+				"Name" : "winget",
+				"Type" : "Microsoft.PreIndexed.Package"
+			}
+		}
+	],
+	"WinGetVersion" : "1.29.290"
+}

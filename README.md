@@ -14,19 +14,49 @@ and no way for the repository to fall behind.
 
 ## Fresh machine
 
+One line, on a machine with nothing on it:
+
+```powershell
+irm https://raw.githubusercontent.com/Duskalor/PowerShell/main/install.ps1 | iex
+```
+
+Read the plan first if you prefer — nothing is written:
+
+```powershell
+irm https://raw.githubusercontent.com/Duskalor/PowerShell/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -DryRun
+```
+
+`install.ps1` runs under the Windows PowerShell 5.1 that ships with Windows, so
+there is nothing to install before it. In order it:
+
+1. checks winget is present and that this shell may create symbolic links
+2. installs **git** and **PowerShell 7** if they are missing
+3. clones this repository into the real PowerShell profile directory —
+   `[Environment]::GetFolderPath('MyDocuments')`, not `$HOME\Documents`, because
+   OneDrive redirects Documents on most machines and a clone in the wrong place
+   links every config correctly into a profile that never loads
+4. installs the toolchain from `packages/winget-core.json`
+5. installs **IosevkaTerm Nerd Font** for the current user, no elevation needed
+6. installs **engram** into `~\bin` and puts `~\bin` on PATH
+7. hands over to `bootstrap.ps1`, which links every config
+
+Every step checks before it acts, so running it again repairs a machine instead
+of duplicating anything.
+
+| Flag | Effect |
+|------|--------|
+| `-DryRun` | report every step, change nothing |
+| `-AllPackages` | restore `packages/winget.json`, the full machine snapshot, instead of the curated toolchain |
+| `-SkipPackages` | link the configuration, install no applications |
+| `-SkipFont` / `-SkipEngram` | leave those alone |
+
+### Already have git and a clone
+
 ```powershell
 git clone https://github.com/Duskalor/PowerShell.git "$HOME\Documents\PowerShell"
 cd "$HOME\Documents\PowerShell"
-.\bootstrap.ps1
-```
-
-That is the whole setup. `bootstrap.ps1` reads `manifest.psd1` and links every
-config into place.
-
-Preview it first if you like — nothing is written:
-
-```powershell
-.\bootstrap.ps1 -DryRun
+.\bootstrap.ps1          # links configuration only, installs nothing
 ```
 
 Anything already sitting at a destination is moved into `.backup/<timestamp>/`
@@ -40,21 +70,9 @@ on. Turn it on once:
 
 > Settings → System → For developers → Developer Mode → **On**
 
-The alternative is running `bootstrap.ps1` from an Administrator terminal.
-`bootstrap.ps1` checks for this up front and stops with instructions rather than
-failing on every file.
-
-### Four things bootstrap cannot do for you
-
-| Step | Command |
-|------|---------|
-| Install **IosevkaTerm Nerd Font** | [nerdfonts.com](https://www.nerdfonts.com/font-downloads) — extract, select all `.ttf`, right click → Install for all users |
-| Restore Scoop packages | `scoop import packages\scoop.json` |
-| Restore Winget packages | `winget import -i packages\winget.json` |
-| Install the Engram binary | Download `engram-windows-x64.exe` from [releases](https://github.com/Gentleman-Programming/engram/releases), save as `~\bin\engram.exe`, add `~\bin` to PATH |
-
-The font has to be installed by the operating system, and the package lists
-install hundreds of megabytes that do not belong in a git repository.
+The alternative is running from an Administrator terminal. `install.ps1` and
+`bootstrap.ps1` both check for this up front and stop with instructions rather
+than failing on every file.
 
 ---
 
@@ -86,6 +104,7 @@ git diff
 ## What is here
 
 ```
+├── install.ps1                      bare machine to configured, in one command
 ├── bootstrap.ps1                    set the machine up from the repo
 ├── sync.ps1                         detect and repair broken links
 ├── manifest.psd1                    what gets linked where — the source of truth
@@ -103,7 +122,7 @@ git diff
 │   ├── agents/skills/               shared agent skills
 │   ├── gga/                         Gentleman Guardian Angel
 │   └── git/ignore                   global gitignore
-├── packages/                        scoop.json, winget.json
+├── packages/                        winget-core.json, winget.json, scoop.json
 ├── Scripts/                         standalone helper scripts
 └── Modules/                         vendored PowerShell modules
 ```
