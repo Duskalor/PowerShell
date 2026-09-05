@@ -40,3 +40,7 @@ config/opencode/package-lock.json
 
 # Agent tooling local cache
 .atl/
+
+# Compiled Python bytecode from bundled skill scripts
+__pycache__/
+*.pyc
