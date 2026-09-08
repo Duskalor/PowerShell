@@ -72,25 +72,6 @@ Set-PSReadLineOption -AddToHistoryHandler {
 
 # Zellij auto-start removed: Alacritty now launches zellij directly (faster)
 
-# Engram sync helpers
-function engram-push {
-    $dir = "$HOME\.engram"
-    engram export "$dir\engram-export.json"
-    Push-Location $dir
-    git add -A
-    git commit -m "sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
-    git push
-    Pop-Location
-}
-function engram-pull {
-    $dir = "$HOME\.engram"
-    Push-Location $dir
-    git pull
-    Pop-Location
-    engram import "$dir\engram-export.json"
-}
-
-
 function newdb { & "$PSScriptRoot\Scripts\newdb.ps1" @args }
 
 
@@ -183,12 +164,6 @@ function cmds {
     Write-Host "  newdb          crear nueva DB (script)"
     Write-Host "  rmj            script remaju"
     Write-Host "  cf <dir> <files>  crear carpeta + archivos .ts"
-    Write-Host ""
-    Write-Host "  ==========================================" -ForegroundColor DarkGray
-    Write-Host "   ENGRAM / MEMORIA" -ForegroundColor Yellow
-    Write-Host "  ==========================================" -ForegroundColor DarkGray
-    Write-Host "  engram-push    exportar y pushear memoria a git"
-    Write-Host "  engram-pull    pullear y reimportar memoria desde git"
     Write-Host ""
     Write-Host "  ==========================================" -ForegroundColor DarkGray
     Write-Host "   ZELLIJ (solo dentro de Zellij)" -ForegroundColor Yellow
