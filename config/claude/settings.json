@@ -80,7 +80,7 @@
         "mcp",
         "--tools=agent"
       ],
-      "command": "C:\\Users\\Paul Cruz\\bin\\engram.exe"
+      "command": "engram"
     }
   }
 }
