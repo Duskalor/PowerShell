@@ -221,7 +221,7 @@ function power {
 }
 
 function tg {
-    Start-Process "G:\Juegos\Suzumiya Haruhi\asd\Telegram\Telegram.exe"
+    Start-Process "F:\Juegos1\Suzumiya Haruhi\asd\Telegram\Telegram.exe"
 }
 function telegram {
     Set-Location -Path "G:\Juegos\Suzumiya Haruhi\asd\Telegram"
