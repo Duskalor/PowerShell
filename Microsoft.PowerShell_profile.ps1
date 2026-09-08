@@ -355,3 +355,16 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
 }
 
 # --- END TOOLS BLOCK ----------------------------------------------------------
+
+# --- VM de prueba del configurador (Hospital Lorena) --------------------------
+# Comandos vm-* : vm-crear, vm-estado, vm-abrir, vm-prender, vm-apagar,
+# vm-guardar, vm-reset, vm-push, vm-destruir.
+#
+# Hyper-V exige ventana de Administrador. Cargar las funciones aca es inofensivo
+# igual: no tocan Hyper-V hasta que las llamas, y sin elevacion avisan y cortan.
+$lorenaVmPath = "$env:USERPROFILE\Documents\Proyects\test-cli\H-lorena-TUI\tools\vm\lorena-vm.ps1"
+if (Test-Path $lorenaVmPath) {
+    $LorenaVMSilencioso = $true   # sin cartel de bienvenida en cada ventana
+    . $lorenaVmPath
+}
+Remove-Variable lorenaVmPath, LorenaVMSilencioso -ErrorAction SilentlyContinue
