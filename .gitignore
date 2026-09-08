@@ -10,6 +10,9 @@
 # bootstrap.ps1 moves pre-existing files here before linking
 .backup/
 
+# sync.ps1 stages a replacement directory here before swapping it into place
+*.dotfiles-staging/
+
 # --- Operating system noise ---
 .DS_Store
 Thumbs.db

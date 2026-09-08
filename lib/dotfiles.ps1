@@ -117,6 +117,53 @@ function New-DotfilesParent {
 }
 
 <#
+    Bring a destination's content back into the repository.
+
+    sync treats the machine as the source of truth, so afterwards the source
+    holds exactly what the destination held: additions, edits and removals
+    alike. Mirroring rather than merging is the deliberate choice. A merge can
+    never express a deletion, so a config removed on the machine would come
+    back at the next relink and could never be removed at all. git is what
+    makes the stricter rule safe: every removal lands in the diff this script
+    already asks you to review before committing.
+
+    The file and directory cases have to be told apart, because Copy-Item does
+    not merge two directories that both already exist. Copying `skills` into an
+    existing `skills` places one inside the other and yields skills/skills,
+    which silently buries the rescued content one level down. Copying the
+    children is what merges.
+#>
+function Copy-DotfilesContent {
+    param(
+        [Parameter(Mandatory)][string]$From,
+        [Parameter(Mandatory)][string]$To
+    )
+
+    if (-not (Get-Item -LiteralPath $From -Force).PSIsContainer) {
+        Copy-Item -LiteralPath $From -Destination $To -Force
+        return
+    }
+
+    # Build the replacement beside the destination and swap it in at the end. A
+    # copy that fails halfway must not leave the repository holding half a
+    # directory, and a sibling keeps the swap on one volume, so it is a rename.
+    $staging = "$To.dotfiles-staging"
+    try {
+        if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
+        New-Item -ItemType Directory -Path $staging -Force | Out-Null
+
+        foreach ($child in (Get-ChildItem -LiteralPath $From -Force)) {
+            Copy-Item -LiteralPath $child.FullName -Destination $staging -Recurse -Force
+        }
+
+        if (Test-Path -LiteralPath $To) { Remove-Item -LiteralPath $To -Recurse -Force }
+        Move-Item -LiteralPath $staging -Destination $To
+    } finally {
+        if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
+    }
+}
+
+<#
     ---------------------------------------------------------------------------
     Rendered templates
     ---------------------------------------------------------------------------

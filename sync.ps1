@@ -83,13 +83,13 @@ foreach ($link in $manifest.Links) {
             # The machine holds the newer content. Bring it into the repository
             # before relinking, otherwise the edits made since the link broke
             # would be lost.
-            Copy-Item -LiteralPath $target -Destination $source -Recurse -Force
+            Copy-DotfilesContent -From $target -To $source
             Remove-Item -LiteralPath $target -Recurse -Force
             New-Item -ItemType SymbolicLink -Path $target -Value $source -Force | Out-Null
             $counts.Rescued++
             $rescued += $label
             Write-Host "  rescued  $label" -ForegroundColor Magenta
-            Write-Host "           local changes copied into the repository, then relinked" -ForegroundColor DarkGray
+            Write-Host "           repository set to match the machine, then relinked" -ForegroundColor DarkGray
         }
         elseif ($state -eq 'Relink') {
             Remove-DotfilesLink -Path $target
