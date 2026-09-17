@@ -22,7 +22,7 @@ family = "IosevkaTerm NFM"
 style  = "Bold Italic"
 
 [window]
-opacity = 0.90
+opacity = 1.0
 decorations = "Full"
 startup_mode = "Windowed"
 dynamic_title = false
@@ -45,7 +45,7 @@ args = ["--cd", "~"]
 # ──────────────────────────────────────────────────────────────────────────────
 
 [colors.primary]
-background = "#000000"
+background = "#1e1e2e"
 foreground = "#cdd6f4"
 dim_foreground    = "#7f849c"
 bright_foreground = "#cdd6f4"
@@ -79,7 +79,7 @@ background = "#a6adc8"
 foreground = "#1e1e2e"
 
 [colors.footer_bar]
-background = "#000000"
+background = "#1e1e2e"
 foreground = "#cdd6f4"
 
 [colors.normal]

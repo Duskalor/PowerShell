@@ -43,48 +43,51 @@
 
 [colors]
 # Apply window.opacity to every cell background, not just the default one.
-# Without this, zellij's explicit theme background (#000000) renders fully
-# opaque, so transparency is only visible while zellij repaints after a resize.
+# No visible effect while window.opacity = 1.0.
 transparent_background_colors = true
 
+# Catppuccin Mocha — official palette
 [colors.primary]
-background = "#000000" # bl: dark background (almost black)
-foreground = "#C9C7CD" # na: main text (light gray)
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+dim_foreground = "#7f849c"
+bright_foreground = "#cdd6f4"
 
 [colors.cursor]
-cursor = "#92A2D5" # ca: blue lavender (cursor)
-text = "#C9C7CD"   # na: main text (light gray)
+cursor = "#f5e0dc"
+text = "#1e1e2e"
 
 [colors.selection]
-background = "#E6B99D" # ca: yellow/beige (selection background)
+background = "#f5e0dc"
+text = "#1e1e2e"
 
 [colors.normal]
-black = "#000000"   # bl: dark background (almost black)
-red = "#EA83A5"     # ia: intense pink (errors)
-green = "#90B99F"   # va: soft green (success)
-yellow = "#E6B99D"  # ca: beige (warnings)
-blue = "#85B5BA"    # va: light blue-green (information)
-magenta = "#92A2D5" # ca: blue lavender (highlight)
-cyan = "#85B5BA"    # va: light blue-green (links)
-white = "#C9C7CD"   # na: main text (light gray)
+black = "#45475a"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#bac2de"
 
 [colors.bright]
-black = "#4C566A"   # nb: medium gray (bright black)
-red = "#EA83A5"     # ia: intense pink (bright red)
-green = "#90B99F"   # va: soft green (bright green)
-yellow = "#E6B99D"  # ca: beige (bright yellow)
-blue = "#85B5BA"    # va: light blue-green (bright blue)
-magenta = "#92A2D5" # ca: blue lavender (bright magenta)
-cyan = "#85B5BA"    # va: light blue-green (bright cyan)
-white = "#C9C7CD"   # na: main text (bright white)
+black = "#585b70"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#a6adc8"
 
 [[colors.indexed_colors]]
 index = 16
-color = "#F5A191" # ca: light peach (orange)
+color = "#fab387"
 
 [[colors.indexed_colors]]
 index = 17
-color = "#E29ECA" # ia: soft pink (pink)
+color = "#f5e0dc"
 
 [cursor]
 style = "Block"
@@ -98,7 +101,7 @@ family = "IosevkaTerm NF"
 
 [window]
 option_as_alt = "Both"
-opacity = 0.90
+opacity = 1.0
 startup_mode = "Maximized"
 
 [env]
