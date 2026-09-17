@@ -72,25 +72,6 @@ Set-PSReadLineOption -AddToHistoryHandler {
 
 # Zellij auto-start removed: Alacritty now launches zellij directly (faster)
 
-# Engram sync helpers
-function engram-push {
-    $dir = "$HOME\.engram"
-    engram export "$dir\engram-export.json"
-    Push-Location $dir
-    git add -A
-    git commit -m "sync $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
-    git push
-    Pop-Location
-}
-function engram-pull {
-    $dir = "$HOME\.engram"
-    Push-Location $dir
-    git pull
-    Pop-Location
-    engram import "$dir\engram-export.json"
-}
-
-
 function newdb { & "$PSScriptRoot\Scripts\newdb.ps1" @args }
 
 
@@ -185,12 +166,6 @@ function cmds {
     Write-Host "  cf <dir> <files>  crear carpeta + archivos .ts"
     Write-Host ""
     Write-Host "  ==========================================" -ForegroundColor DarkGray
-    Write-Host "   ENGRAM / MEMORIA" -ForegroundColor Yellow
-    Write-Host "  ==========================================" -ForegroundColor DarkGray
-    Write-Host "  engram-push    exportar y pushear memoria a git"
-    Write-Host "  engram-pull    pullear y reimportar memoria desde git"
-    Write-Host ""
-    Write-Host "  ==========================================" -ForegroundColor DarkGray
     Write-Host "   ZELLIJ (solo dentro de Zellij)" -ForegroundColor Yellow
     Write-Host "  ==========================================" -ForegroundColor DarkGray
     Write-Host "  Alt+F          toggle/crear floating pane en CWD actual"
@@ -246,7 +221,7 @@ function power {
 }
 
 function tg {
-    Start-Process "G:\Juegos\Suzumiya Haruhi\asd\Telegram\Telegram.exe"
+    Start-Process "F:\Juegos1\Suzumiya Haruhi\asd\Telegram\Telegram.exe"
 }
 function telegram {
     Set-Location -Path "G:\Juegos\Suzumiya Haruhi\asd\Telegram"
@@ -380,3 +355,16 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
 }
 
 # --- END TOOLS BLOCK ----------------------------------------------------------
+
+# --- VM de prueba del configurador (Hospital Lorena) --------------------------
+# Comandos vm-* : vm-crear, vm-estado, vm-abrir, vm-prender, vm-apagar,
+# vm-guardar, vm-reset, vm-push, vm-destruir.
+#
+# Hyper-V exige ventana de Administrador. Cargar las funciones aca es inofensivo
+# igual: no tocan Hyper-V hasta que las llamas, y sin elevacion avisan y cortan.
+$lorenaVmPath = "$env:USERPROFILE\Documents\Proyects\test-cli\H-lorena-TUI\tools\vm\lorena-vm.ps1"
+if (Test-Path $lorenaVmPath) {
+    $LorenaVMSilencioso = $true   # sin cartel de bienvenida en cada ventana
+    . $lorenaVmPath
+}
+Remove-Variable lorenaVmPath, LorenaVMSilencioso -ErrorAction SilentlyContinue

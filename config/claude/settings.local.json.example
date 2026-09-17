@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Machine specific Claude Code settings. Never committed.",
+    "bootstrap.ps1 copies this file to ~/.claude/settings.local.json on a fresh",
+    "machine and leaves it alone on every later run, so your values survive.",
+    "Anything here is merged over the committed settings.json.",
+    "Put project references, tokens and per machine MCP servers in this file."
+  ],
+  "mcpServers": {}
+}

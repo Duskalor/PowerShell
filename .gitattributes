@@ -1,0 +1,21 @@
+# Shell scripts must keep LF endings. bash fails with a literal \r on every
+# line of a CRLF script, so statusline-command.sh would break on a fresh clone
+# under the default Windows autocrlf setting.
+*.sh text eol=lf
+
+# Config formats read by cross-platform tools. Keeping LF avoids surprises when
+# the same repository is cloned on WSL or Linux.
+*.ts   text eol=lf
+*.kdl  text eol=lf
+*.toml text eol=lf
+*.lua  text eol=lf
+*.json text eol=lf
+
+# PowerShell is Windows first here; CRLF is the native convention.
+*.ps1  text eol=crlf
+*.psd1 text eol=crlf
+*.psm1 text eol=crlf
+
+# Rendered config templates. Their outputs (.toml, .kdl, .json) are all LF
+# formats, so the templates must be too.
+*.template text eol=lf

@@ -1,0 +1,115 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_engram_engram__mem_capture_passive",
+      "mcp__plugin_engram_engram__mem_context",
+      "mcp__plugin_engram_engram__mem_get_observation",
+      "mcp__plugin_engram_engram__mem_save",
+      "mcp__plugin_engram_engram__mem_save_prompt",
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__plugin_engram_engram__mem_session_end",
+      "mcp__plugin_engram_engram__mem_session_start",
+      "mcp__plugin_engram_engram__mem_session_summary",
+      "mcp__plugin_engram_engram__mem_suggest_topic_key",
+      "mcp__plugin_engram_engram__mem_update",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(cd *)",
+      "Bash(test *)",
+      "Write",
+      "Edit"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(sudo rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(sudo rm -rf ~)",
+      "Read(.env)",
+      "Read(.env.example)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "opus",
+  "skillOverrides": {
+    "chained-pr": "off",
+    "comment-writer": "off",
+    "issue-creation": "off",
+    "skill-creator": "off",
+    "skill-improver": "off",
+    "skill-registry": "off",
+    "find-skills": "off"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gentle-ai skill-registry refresh --quiet --no-gitignore --cwd \"${CLAUDE_PROJECT_DIR:-$PWD}\" || true"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "engram@engram": true,
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "engram": {
+      "source": {
+        "source": "github",
+        "repo": "Gentleman-Programming/engram"
+      }
+    }
+  },
+  "outputStyle": "Gentleman",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "mcpServers": {
+    "engram": {
+      "args": [
+        "mcp",
+        "--tools=agent"
+      ],
+      "command": "engram"
+    }
+  },
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: private (Duskalor/tesis-landing)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: default branch unknown (origin/HEAD unset); no protected branches listed via gh (rulesets not queryable here — do not assume unprotected)",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: The trusted repo (Duskalor/tesis-landing) and its origin remote only (no additional orgs configured)",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development — this project is an Astro-based thesis document viewer (Markdown content rendered to web/print), personal/hobby-leaning use",
+      "**Trusted repo**: This repo (Duskalor/tesis-landing, private) and its origin remote (github.com/Duskalor/tesis-landing) — confidential material is fine here given private visibility; secrets are still never cleared into it by visibility alone",
+      "**Org-specific CLIs**: None configured",
+      "routine actions under this repo's working directory (C:\\Users\\Paul Cruz\\Documents\\Proyects\\astro\\tesis-landing) are in scope; academic repository hosts contacted (repositorio.upn.edu.pe, repositorio.ucv.edu.pe, repositorio.continental.edu.pe, repositorio.unjfsc.edu.pe, hdl.handle.net, repositorio.uancv.edu.pe, repositorio.ulima.edu.pe, repositorio.unfv.edu.pe, repositorio.upao.edu.pe, repositorio.urp.edu.pe, repositorio.usat.edu.pe, tesis.pucp.edu.pe) are read-only research lookups, not a trust boundary for uploads"
+    ]
+  }
+}

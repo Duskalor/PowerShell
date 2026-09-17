@@ -1,26 +1,49 @@
-# --- Backups manuales ---
-# git YA es tu historial: cada commit es una version guardada.
-# No hace falta duplicar a mano. Estos patrones evitan que se cuelen.
+# --- Manual backups ---
+# git is already the history: every commit is a saved version. No need to
+# duplicate by hand. These patterns keep stray copies from sneaking in.
 *.backup
 *.backup-*
 *.bak
 *.old
 *~
 
-# --- Ruido de sistema operativo ---
+# bootstrap.ps1 moves pre-existing files here before linking
+.backup/
+
+# sync.ps1 stages a replacement directory here before swapping it into place
+*.dotfiles-staging/
+
+# --- Operating system noise ---
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# --- Ruido de editores ---
+# --- Editor noise ---
 .vscode/
 .idea/
 
-# --- Secretos (NUNCA commitear tokens/claves) ---
+# --- Secrets: never commit tokens or keys ---
 *.env
 .env
 *.secret
 *_secret*
 
+# Machine specific overrides, seeded from the .example files
+settings.local.json
+*.local.json
+!*.local.json.example
+
+# --- Installed or downloaded artifacts, not configuration ---
+# These are restored by their own tools, not by this repository.
+node_modules/
+config/zellij/plugins/
+config/opencode/node_modules/
+config/opencode/bun.lock
+config/opencode/package-lock.json
+
 # Agent tooling local cache
 .atl/
+
+# Compiled Python bytecode from bundled skill scripts
+__pycache__/
+*.pyc
