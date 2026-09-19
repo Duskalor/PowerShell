@@ -1,0 +1,32 @@
+# Universidad Continental house format: the Spanish report layout plus a cover
+# page, with no deliverable-specific text.
+#
+# The cover's wording changes with every course and assignment, so it is not set
+# here. Extend this profile per deliverable and supply the cover content:
+#
+#   extends: continental
+#   cover:
+#     lines:
+#       - {text: UNIVERSIDAD CONTINENTAL, bold: true, size: 16}
+#       - {text: Facultad de Ingeniería, size: 12}
+#       - {text: Nombre del curso, bold: true, size: 13, before: 36}
+#       - {text: Título del trabajo, bold: true, size: 15, before: 48}
+#     members:
+#       - {name: "Apellidos, Nombres", participation: 100 %}
+#     footer_lines:
+#       - {text: "Docente: ...", size: 12, before: 36}
+#       - {text: "Perú, mes de año", size: 12, before: 48}
+#
+# See continental-pa2 for a filled-in example. Note that `lines`, `members` and
+# `footer_lines` are replaced wholesale by a child profile, not appended to -
+# list each cover line the deliverable needs.
+
+extends: report-es
+
+features:
+  cover: true
+
+cover:
+  members_header:
+    - Integrante
+    - "% de participación"

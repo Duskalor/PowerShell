@@ -1,0 +1,41 @@
+# Universidad Continental - Producto Academico N.2 (full report).
+#
+# A worked example of the `continental` house format filled in for one
+# deliverable. For a different course or assignment, copy this file, change the
+# cover text, and keep `extends: continental` - do not edit this one, since its
+# cover names a specific course, title and teacher.
+
+extends: continental
+
+cover:
+  lines:
+    - text: UNIVERSIDAD CONTINENTAL
+      bold: true
+      size: 16
+    - text: Facultad de Ingeniería
+      size: 12
+    - text: Escuela Académico Profesional de Ingeniería de Sistemas e Informática
+      size: 12
+    - text: Pruebas y Calidad de Software
+      bold: true
+      size: 13
+      before: 36
+    - text: Producto Académico N.° 02
+      size: 12
+    - text: Estrategia y Plan de Pruebas del Portal de Clientes de CRC Abogados Asociados S.C.R.L.
+      bold: true
+      size: 15
+      before: 48
+  members_header:
+    - Integrante
+    - "% de participación"
+  members:
+    - name: Cruz Conde, Paul Antonio
+      participation: 100 %
+  footer_lines:
+    - text: "Docente: José Antonio Castro Flores"
+      size: 12
+      before: 36
+    - text: Perú, septiembre de 2026
+      size: 12
+      before: 48

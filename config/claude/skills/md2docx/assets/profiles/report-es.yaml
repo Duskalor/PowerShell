@@ -1,0 +1,38 @@
+# Institution-neutral Spanish report: A4, numbered headings, índice, page
+# numbers, shaded table headers, screenshot placeholders and APA-style
+# reference indentation.
+#
+# No cover page - a cover is institution-specific, so add one where you need it:
+#
+#   extends: report-es
+#   features: {cover: true}
+#   cover:
+#     lines:
+#       - {text: MI ORGANIZACIÓN, bold: true, size: 16}
+
+extends: plain
+
+page:
+  width_cm: 21
+  height_cm: 29.7
+  margins_cm:
+    top: 2.5
+    bottom: 2.5
+    left: 3
+    right: 3
+
+headings:
+  numbering: true
+  page_break_before_unnumbered: true
+  unnumbered:
+    - Referencias
+    - Anexos
+
+tables:
+  header_fill: D9E2F3
+
+features:
+  toc: true
+  page_numbers: true
+  image_placeholders: true
+  hanging_references: true

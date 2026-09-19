@@ -1,0 +1,42 @@
+# APA 7th edition manuscript, Spanish.
+#
+# Times New Roman 12, double spacing, 2.54 cm margins all round, ragged-right
+# body text, hanging indent on references and unnumbered headings. APA titles
+# are also unbolded and centered by level, which this converter does not model -
+# adjust heading styles in Word if a strict APA submission requires it.
+
+extends: plain
+
+font:
+  name: Times New Roman
+  body_size: 12
+  table_size: 10
+  heading_sizes:
+    1: 12
+    2: 12
+    3: 12
+
+page:
+  width_cm: 21
+  height_cm: 29.7
+  margins_cm:
+    top: 2.54
+    bottom: 2.54
+    left: 2.54
+    right: 2.54
+
+body:
+  line_spacing: 2.0
+  space_after: 0
+  align: left
+
+headings:
+  numbering: false
+
+references:
+  heading: Referencias
+  hanging_cm: 1.27
+
+features:
+  page_numbers: true
+  hanging_references: true

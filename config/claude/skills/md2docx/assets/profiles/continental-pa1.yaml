@@ -1,0 +1,13 @@
+# Universidad Continental - Producto Academico N.1 (condensed report).
+# Arial 12, 1.5 spacing, justified. No cover page and no TOC - this brief
+# expects those to be added by hand in Word.
+
+extends: plain
+
+font:
+  body_size: 12
+  table_size: 12
+  heading_sizes:
+    1: 12
+    2: 12
+    3: 12

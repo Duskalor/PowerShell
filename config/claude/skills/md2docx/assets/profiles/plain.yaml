@@ -1,0 +1,43 @@
+# Base profile: a clean, unadorned document.
+#
+# Every other profile extends this one. Copy it as the starting point for a new
+# format, or extend it and override only what your rubric actually specifies:
+#
+#   extends: plain
+#   font: {name: Calibri, body_size: 12}
+#
+# Values below match the built-in defaults; they are spelled out so the most
+# commonly adjusted settings are visible in one place.
+
+font:
+  name: Arial
+  body_size: 11
+  table_size: 9
+  heading_sizes:
+    1: 12
+    2: 11
+    3: 11
+
+body:
+  line_spacing: 1.5
+  space_after: 6
+  align: justify
+
+headings:
+  align: left
+  space_before: 12
+  space_after: 6
+  keep_with_next: true
+  numbering: false
+
+tables:
+  header_fill: null
+  line_spacing: 1.0
+  align: center
+
+features:
+  cover: false
+  toc: false
+  page_numbers: false
+  image_placeholders: false
+  hanging_references: false
