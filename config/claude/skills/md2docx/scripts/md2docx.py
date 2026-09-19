@@ -85,7 +85,15 @@ DEFAULTS = {
         "unnumbered": [],
         "page_break_before_unnumbered": True,
     },
-    "tables": {"header_fill": None, "line_spacing": 1.0, "align": "center"},
+    "tables": {
+        "header_fill": None,
+        "line_spacing": 1.0,
+        "align": "center",
+        # Size columns from their content instead of splitting the width
+        # evenly. False restores Word's own layout.
+        "fit_columns": True,
+        "min_column_cm": 1.2,
+    },
     "lists": {
         "number_indent_cm": 0.9,
         "number_hanging_cm": 0.6,
@@ -433,6 +441,20 @@ class DocxRenderer:
             run._r.append(el)
         self.style_run(run)
 
+    def set_table_width(self, table, emu):
+        """Pin the table's own width, in twentieths of a point.
+
+        `autofit = False` alone leaves `tblW` at `auto`, and Word then still
+        reflows the grid on some documents. Stating both settles it.
+        """
+        tbl_pr = table._tbl.tblPr
+        for existing in tbl_pr.findall(qn("w:tblW")):
+            tbl_pr.remove(existing)
+        width = OxmlElement("w:tblW")
+        width.set(qn("w:type"), "dxa")
+        width.set(qn("w:w"), str(int(emu / 635)))  # 1 dxa = 635 EMU
+        tbl_pr.append(width)
+
     def shade(self, cell, hex_fill):
         tc_pr = cell._tc.get_or_add_tcPr()
         shd = OxmlElement("w:shd")
@@ -543,16 +565,30 @@ class DocxRenderer:
         table = self.doc.add_table(rows=1, cols=len(header))
         table.style = "Table Grid"
         table.alignment = ALIGN[cfg["align"]]
-        for cell, text in zip(table.rows[0].cells, header):
-            if cfg["header_fill"]:
-                self.shade(cell, cfg["header_fill"])
-            p = self.fmt(cell.paragraphs[0], spacing=cfg["line_spacing"], after=0, align="left")
-            self.add_inline(p, text, base_bold=True, size=self.table_size)
-        for row in body_rows:
-            cells = table.add_row().cells
-            for cell, text in zip(cells, split_row(row)):
-                p = self.fmt(cell.paragraphs[0], spacing=cfg["line_spacing"], after=0, align="left")
-                self.add_inline(p, text, size=self.table_size)
+
+        parsed = [split_row(row) for row in body_rows]
+        widths = None
+        if cfg["fit_columns"]:
+            widths = column_widths([header] + parsed, int(self.content_width()),
+                                   int(Cm(cfg["min_column_cm"])))
+            # Word recomputes a table it is allowed to autofit, and it honours
+            # per-cell widths only when every row carries them.
+            table.autofit = False
+            self.set_table_width(table, sum(widths))
+
+        def fill(cells, values, bold=False, shade=False):
+            for index, (cell, text) in enumerate(zip(cells, values)):
+                if shade and cfg["header_fill"]:
+                    self.shade(cell, cfg["header_fill"])
+                if widths:
+                    cell.width = Emu(widths[index])
+                p = self.fmt(cell.paragraphs[0], spacing=cfg["line_spacing"],
+                             after=0, align="left")
+                self.add_inline(p, text, base_bold=bold, size=self.table_size)
+
+        fill(table.rows[0].cells, header, bold=True, shade=True)
+        for row in parsed:
+            fill(table.add_row().cells, row)
         self.fmt(self.doc.add_paragraph(), after=0)
 
     def add_image_placeholder(self, caption, key):
@@ -572,10 +608,18 @@ class DocxRenderer:
 
     # ---------- figures ----------
 
-    def figure_width(self) -> Emu:
-        """Widest a figure may be: the text column, or `images.max_width_cm`."""
+    def content_width(self) -> Emu:
+        """The text column: page width less both margins."""
         sec = self.doc.sections[0]
-        content = Emu(sec.page_width - sec.left_margin - sec.right_margin)
+        return Emu(sec.page_width - sec.left_margin - sec.right_margin)
+
+    def figure_width(self) -> Emu:
+        """Widest a figure may be: the text column, or `images.max_width_cm`.
+
+        Tables use `content_width` instead - capping figures must not narrow
+        the tables along with them.
+        """
+        content = self.content_width()
         cap = self.p["images"]["max_width_cm"]
         return Emu(min(content, Cm(cap))) if cap else content
 
@@ -655,6 +699,45 @@ class DocxRenderer:
 
 def split_row(line: str) -> list[str]:
     return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def column_widths(rows: list[list[str]], total: int, floor: int) -> list[int]:
+    """Split `total` EMU across columns according to how much text they hold.
+
+    Splitting evenly is what makes a wide table unreadable: a nine-column
+    table gives an 87-character cell the same 1.7 cm as a two-character one,
+    and that cell becomes a nine-line-tall paragraph.
+
+    Demand is softened with an exponent because a cell's text wraps - twice
+    the characters needs noticeably less than twice the width. Every column
+    then gets at least `floor`, paid for by the widest ones, so a narrow
+    column stays readable instead of being squeezed to nothing.
+    """
+    n = max(len(r) for r in rows)
+    if n * floor >= total:  # too many columns to honour the floor
+        return [total // n] * n
+
+    demand = [max((len(r[c]) for r in rows if c < len(r)), default=1) or 1
+              for c in range(n)]
+    soft = [d ** 0.6 for d in demand]
+    widths = [total * s / sum(soft) for s in soft]
+
+    # Lift short columns to the floor, taking the difference from whichever
+    # columns still have slack, in proportion to how much slack they have.
+    for _ in range(n):
+        deficit = sum(floor - w for w in widths if w < floor)
+        if deficit <= 0:
+            break
+        slack = sum(w - floor for w in widths if w > floor)
+        if slack <= 0:
+            break
+        widths = [w - deficit * (w - floor) / slack if w > floor else w
+                  for w in widths]
+        widths = [max(w, floor) for w in widths]
+
+    out = [int(round(w)) for w in widths]
+    out[out.index(max(out))] += total - sum(out)  # rounding drift
+    return out
 
 
 def strip_frontmatter(lines: list[str]) -> list[str]:

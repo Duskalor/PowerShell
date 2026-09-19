@@ -113,6 +113,16 @@ annexes are normally lettered rather than numbered.
 | `header_fill` | `null` | Header row shading as a hex string without `#`, e.g. `D9E2F3`. `null` leaves it unshaded |
 | `line_spacing` | `1.0` | Spacing inside cells - usually tighter than body text |
 | `align` | `center` | Table alignment on the page |
+| `fit_columns` | `true` | Size columns from their content. `false` restores Word's own layout |
+| `min_column_cm` | `1.2` | Floor no column goes below, unless there are too many columns to fit |
+
+Columns are sized from the longest text each one holds, softened because a cell
+wraps - twice the characters needs well under twice the width. Short columns are
+lifted to `min_column_cm`, paid for by whichever columns still have slack.
+
+Tables always span the full text column, and are unaffected by
+`images.max_width_cm`. When the column count makes `min_column_cm` impossible,
+the table falls back to equal widths.
 
 ## lists
 

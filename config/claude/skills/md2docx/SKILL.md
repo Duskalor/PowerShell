@@ -44,7 +44,7 @@ Documents containing SVG also need Chrome or Edge installed - see *Figures*.
 | `- item` | Bulleted list, nested by indentation up to three levels |
 | `1. item` | Numbered paragraph with hanging indent, nested the same way |
 | `> quoted` | Block quote: indented, and joined across the lines it wraps over |
-| `\| a \| b \|` | Table with a styled header row |
+| `\| a \| b \|` | Table with a styled header row, columns sized from their content |
 | `![caption](path.png)` | The image, centered and captioned, fitted to the text column |
 | `![caption](path.svg)` | Same, rasterized first - see *Figures* |
 | `![caption](KEY)` | Boxed screenshot placeholder, when the path resolves to no file and `features.image_placeholders` is on |
@@ -238,6 +238,12 @@ every run - preserve that when editing `style_run`.
 
 Word fields (`TOC`, `PAGE`) have no `python-docx` API and are built as raw OOXML
 via `OxmlElement`/`qn`. That code looks odd but is load-bearing.
+
+**Column widths must be written to every row, not just the first, and the table
+must be taken off autofit.** Word recomputes the grid otherwise and the
+computed widths vanish - the document still opens, so this fails quietly.
+`python-docx` 1.2 has no `layout_type`; `autofit = False` is what writes
+`tblLayout fixed`, and `set_table_width` pins `tblW` alongside it.
 
 Unknown profile keys warn on stderr at every nesting level, so a misspelled key
 is reported rather than silently ignored. Read stderr when a setting appears to
