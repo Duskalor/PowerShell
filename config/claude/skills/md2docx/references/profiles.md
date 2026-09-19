@@ -19,6 +19,7 @@ nothing.
 - [tables](#tables)
 - [lists](#lists)
 - [references](#references)
+- [quotes](#quotes)
 - [images](#images)
 - [toc](#toc)
 - [features](#features)
@@ -119,6 +120,27 @@ annexes are normally lettered rather than numbered.
 | --- | --- | --- |
 | `number_indent_cm` | `0.9` | Left indent for `1. item` paragraphs |
 | `number_hanging_cm` | `0.6` | Hanging indent so wrapped lines align after the number |
+| `nest_indent_cm` | `0.75` | Added per nesting level, for bullets and numbers alike |
+| `spaces_per_level` | `2` | Leading spaces that make up one nesting level in the source |
+
+Nested bullets use Word's `List Bullet 2` and `List Bullet 3` styles, so they
+stop at three levels; anything deeper renders at the third. A tab counts as one
+full level regardless of `spaces_per_level`.
+
+## quotes
+
+Block quotes (`> quoted`). A bare `>` starts a new quoted paragraph; the lines
+in between are joined, so source wrapping does not become paragraph breaks.
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `left_indent_cm` | `1.0` | Indent from the left margin |
+| `right_indent_cm` | `0.0` | Indent from the right margin |
+| `italic` | `false` | Italicise the whole quote |
+| `size` | `null` | Font size. `null` follows the body |
+| `line_spacing` | `null` | `null` follows `body.line_spacing` |
+| `space_after` | `null` | `null` follows `body.space_after` |
+| `align` | `justify` | `justify`, `left`, `center` or `right` |
 
 ## references
 

@@ -41,8 +41,9 @@ Documents containing SVG also need Chrome or Edge installed - see *Figures*.
 | --- | --- |
 | `# H1` … `### H3` | Heading 1-3, auto-numbered (`1.`, `1.1.`) when the profile enables it |
 | `**bold**`, `*italic*` | Inline runs |
-| `- item` | Bulleted list |
-| `1. item` | Numbered paragraph with hanging indent |
+| `- item` | Bulleted list, nested by indentation up to three levels |
+| `1. item` | Numbered paragraph with hanging indent, nested the same way |
+| `> quoted` | Block quote: indented, and joined across the lines it wraps over |
 | `\| a \| b \|` | Table with a styled header row |
 | `![caption](path.png)` | The image, centered and captioned, fitted to the text column |
 | `![caption](path.svg)` | Same, rasterized first - see *Figures* |
@@ -57,7 +58,12 @@ static site renders without its `title:` keys becoming the first paragraphs. A
 Paragraphs following the references heading get an APA-style hanging indent when
 `features.hanging_references` is on, so a reference list needs no special markup.
 
-Anything outside this table (code fences, blockquotes, nested lists, inline
+A block quote breaks into paragraphs on a bare `>`, the way Markdown does, not
+on every newline - a quote soft-wrapped across five source lines is one
+paragraph, not five. Nesting is read from leading whitespace, two spaces per
+level by default (`lists.spaces_per_level`).
+
+Anything outside this table (code fences, inline code, inline
 links) renders as plain text. If one of those is needed, extend
 `scripts/md2docx.py` rather than working around it in the Markdown - a workaround
 in the content file defeats the separation the tool exists for.

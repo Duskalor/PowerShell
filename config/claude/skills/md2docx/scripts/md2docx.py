@@ -33,7 +33,10 @@ BLACK = RGBColor(0, 0, 0)
 
 INLINE = re.compile(r"(\*\*.+?\*\*|\*.+?\*)")
 IMAGE = re.compile(r"^!\[(.*?)\]\((.+?)\)$")
-NUMBERED = re.compile(r"^(\d+)\.\s+(.*)$")
+# Leading whitespace is captured, not skipped: it carries the nesting level.
+BULLET = re.compile(r"^(\s*)[-*]\s+(.*)$")
+NUMBERED = re.compile(r"^(\s*)(\d+)\.\s+(.*)$")
+QUOTE = re.compile(r"^>\s?(.*)$")
 RULE = re.compile(r"^-{3,}$")
 
 # Raster formats Word embeds directly. SVG is handled separately: Word's own SVG
@@ -83,7 +86,24 @@ DEFAULTS = {
         "page_break_before_unnumbered": True,
     },
     "tables": {"header_fill": None, "line_spacing": 1.0, "align": "center"},
-    "lists": {"number_indent_cm": 0.9, "number_hanging_cm": 0.6},
+    "lists": {
+        "number_indent_cm": 0.9,
+        "number_hanging_cm": 0.6,
+        # Added per nesting level, for both bullets and numbers.
+        "nest_indent_cm": 0.75,
+        # How many leading spaces the source uses for one level.
+        "spaces_per_level": 2,
+    },
+    "quotes": {
+        "left_indent_cm": 1.0,
+        "right_indent_cm": 0.0,
+        "italic": False,
+        # None follows the body text.
+        "size": None,
+        "line_spacing": None,
+        "space_after": None,
+        "align": "justify",
+    },
     "references": {"heading": "Referencias", "hanging_cm": 1.27},
     "images": {
         "fill": "F2F2F2",
@@ -468,10 +488,45 @@ class DocxRenderer:
         p.paragraph_format.first_line_indent = -hanging
         return p
 
-    def add_numbered(self, number, text):
+    def nest_level(self, indent: str) -> int:
+        """How deep a list item sits, from its leading whitespace.
+
+        A tab counts as one full level; spaces are divided by
+        `lists.spaces_per_level`. Capped at 2 because Word's built-in list
+        styles stop at three levels.
+        """
+        per = max(1, self.p["lists"]["spaces_per_level"])
+        width = sum(per if ch == "\t" else 1 for ch in indent)
+        return min(2, width // per)
+
+    def add_bullet(self, text, level=0):
+        style = "List Bullet" if level == 0 else f"List Bullet {level + 1}"
+        p = self.add_body(text, style=style)
+        if level:
+            p.paragraph_format.left_indent = Cm(
+                self.p["lists"]["nest_indent_cm"] * (level + 1))
+        return p
+
+    def add_numbered(self, number, text, level=0):
+        cfg = self.p["lists"]
         p = self.add_body(f"{number}. {text}")
-        p.paragraph_format.left_indent = Cm(self.p["lists"]["number_indent_cm"])
-        p.paragraph_format.first_line_indent = -Cm(self.p["lists"]["number_hanging_cm"])
+        p.paragraph_format.left_indent = Cm(
+            cfg["number_indent_cm"] + cfg["nest_indent_cm"] * level)
+        p.paragraph_format.first_line_indent = -Cm(cfg["number_hanging_cm"])
+        return p
+
+    def add_quote(self, text):
+        """A block quote: indented, never carrying its `>` into the document."""
+        cfg = self.p["quotes"]
+        p = self.fmt(self.doc.add_paragraph(), spacing=cfg["line_spacing"],
+                     after=cfg["space_after"], align=cfg["align"])
+        p.paragraph_format.left_indent = Cm(cfg["left_indent_cm"])
+        p.paragraph_format.right_indent = Cm(cfg["right_indent_cm"])
+        size = Pt(cfg["size"]) if cfg["size"] else None
+        self.add_inline(p, text, size=size)
+        if cfg["italic"]:
+            for run in p.runs:
+                run.italic = True
         return p
 
     def add_heading(self, text, level):
@@ -735,14 +790,36 @@ def convert(src: Path, dst: Path, profile: dict) -> None:
             i += 1
             continue
 
-        if line.startswith("- "):
-            r.add_body(line[2:], style="List Bullet")
+        # A block quote, joined across the lines it was soft-wrapped over: in
+        # Markdown a quote breaks into paragraphs on a bare `>`, not on every
+        # newline, so rendering one paragraph per source line would shred it.
+        if QUOTE.match(line):
+            chunk: list[str] = []
+            while i < len(lines):
+                quoted = QUOTE.match(lines[i].rstrip())
+                if not quoted:
+                    break
+                i += 1
+                piece = quoted.group(1).strip()
+                if piece:
+                    chunk.append(piece)
+                elif chunk:
+                    r.add_quote(" ".join(chunk))
+                    chunk = []
+            if chunk:
+                r.add_quote(" ".join(chunk))
+            continue
+
+        bullet = BULLET.match(line)
+        if bullet:
+            r.add_bullet(bullet.group(2), r.nest_level(bullet.group(1)))
             i += 1
             continue
 
         numbered = NUMBERED.match(line)
         if numbered:
-            r.add_numbered(numbered.group(1), numbered.group(2))
+            r.add_numbered(numbered.group(2), numbered.group(3),
+                           r.nest_level(numbered.group(1)))
             i += 1
             continue
 
