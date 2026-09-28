@@ -244,11 +244,10 @@ paths with the Windows user name are rendered from templates — see
 [Two mechanisms](#two-mechanisms) — so bootstrap writes the right paths for
 whatever machine it runs on.
 
-Two files still name this machine and are deliberately left as they are:
+One file still names this machine and is deliberately left as it is:
 
 | File | Why it is fine |
 |------|----------------|
-| `config/claude/statusline-command.sh` | the absolute Python path is an `elif` branch, reached only after the PATH lookup fails |
 | `config/opencode/plugins/engram.ts` | `process.env.ENGRAM_BIN ?? Bun.which("engram") ?? <path>` — the path is the last resort |
 
 To confirm nothing has crept back in:

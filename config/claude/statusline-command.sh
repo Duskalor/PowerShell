@@ -1,152 +1,125 @@
 #!/usr/bin/env bash
 input=$(cat)
 
-# Detect python interpreter
-PYTHON_EXE=""
-PYTHON_PRE=""
-if command -v python3 >/dev/null 2>&1; then
-  PYTHON_EXE="python3"
-elif command -v python >/dev/null 2>&1; then
-  PYTHON_EXE="python"
-elif command -v py >/dev/null 2>&1; then
-  PYTHON_EXE="py"
-  PYTHON_PRE="-3"
-elif [ -x "/c/Users/Paul Cruz/AppData/Local/Programs/Python/Python311/python.exe" ]; then
-  PYTHON_EXE="/c/Users/Paul Cruz/AppData/Local/Programs/Python/Python311/python.exe"
+# --- Detect JS interpreter (node) ---
+NODE_EXE=""
+if command -v node >/dev/null 2>&1; then
+  NODE_EXE="node"
+elif command -v nodejs >/dev/null 2>&1; then
+  NODE_EXE="nodejs"
 fi
 
-run_py() {
-  if [ -z "$PYTHON_EXE" ]; then
-    cat >/dev/null
-    return 1
-  fi
-  if [ -n "$PYTHON_PRE" ]; then
-    "$PYTHON_EXE" "$PYTHON_PRE" "$@"
-  else
-    "$PYTHON_EXE" "$@"
-  fi
+# --- Single node call: parse the JSON once, emit every field as a line ---
+fields=""
+if [ -n "$NODE_EXE" ]; then
+  fields=$(printf '%s' "$input" | "$NODE_EXE" -e '
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+let d = {};
+try { d = JSON.parse(fs.readFileSync(0, "utf8")); } catch (e) { d = {}; }
+
+function usedPct(ctx) {
+  if (!ctx || typeof ctx !== "object") return "";
+  let v = ctx.used_percentage;
+  if (v == null) {
+    const tin = ctx.total_input_tokens || 0;
+    const tout = ctx.total_output_tokens || 0;
+    const size = ctx.context_window_size || 0;
+    if (size > 0) v = (tin + tout) / size * 100;
+  }
+  return v == null ? "" : String(v);
 }
 
-# --- Extract fields (separate calls — avoids quoting/eval bugs) ---
+function pctFrom(obj) {
+  if (!obj || typeof obj !== "object") return "";
+  for (const k of ["percentage", "used_percentage", "percent_used", "percentUsed"]) {
+    if (obj[k] != null) return String(Number(obj[k]));
+  }
+  const usedKeys = ["tokens_used", "inputTokens", "input_tokens", "used"];
+  const limKeys = ["tokens_limit", "tokens_max", "limit", "max"];
+  for (const uk of usedKeys) {
+    for (const lk of limKeys) {
+      const u = obj[uk], m = obj[lk];
+      if (u != null && m && Number(m) > 0) return String((Number(u) / Number(m)) * 100);
+    }
+  }
+  return "";
+}
 
-cwd=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('workspace', {}).get('current_dir') or d.get('cwd', ''))
-")
+function fmtReset(obj) {
+  if (!obj || typeof obj !== "object") return "";
+  const v = obj.resets_at != null ? obj.resets_at : obj.reset_at;
+  if (v == null) return "";
+  let dt;
+  if (typeof v === "number") dt = new Date(v * 1000);
+  else {
+    dt = new Date(String(v));
+    if (isNaN(dt.getTime())) return "";
+  }
+  const secs = Math.floor((dt.getTime() - Date.now()) / 1000);
+  if (secs <= 0) return "now";
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return h > 0 ? h + "h" + String(m).padStart(2, "0") + "m" : m + "m";
+}
 
-model=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('model', {}).get('display_name', ''))
-")
+function displayCwd(p) {
+  p = (p || "").trim();
+  let parts = p.split(/[\\/]/).filter(Boolean);
+  const low = parts.map((x) => x.toLowerCase());
+  if (low.length >= 3 && (low[0] === "c:" || low[0] === "d:") && low[1] === "users") {
+    parts = ["~"].concat(parts.slice(3));
+  } else if (low.length >= 2 && low[0] === "users") {
+    parts = ["~"].concat(parts.slice(2));
+  }
+  const sep = p.indexOf("\\") !== -1 ? "\\" : "/";
+  if (parts.length > 2) {
+    return "..." + sep + parts.slice(-2).join(sep);
+  }
+  return parts.join(sep);
+}
 
-used=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-ctx = d.get('context_window', {}) or {}
-v = ctx.get('used_percentage')
-if v is None:
-    tin  = ctx.get('total_input_tokens') or 0
-    tout = ctx.get('total_output_tokens') or 0
-    size = ctx.get('context_window_size') or 0
-    if size > 0:
-        v = (tin + tout) / size * 100
-print('' if v is None else v)
-")
+const cwd = (d.workspace && d.workspace.current_dir) || d.cwd || "";
+const model = (d.model && d.model.display_name) || "";
+const used = usedPct(d.context_window);
+const session_name = d.session_name || "";
+const cost = d.cost || {};
+const cost_usd = cost.total_cost_usd != null ? String(cost.total_cost_usd) : "";
 
-session_name=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('session_name', '') or '')
-")
+const rl = d.rate_limits || {};
+const fiveHour = typeof rl.five_hour === "object" && rl.five_hour ? rl.five_hour : {};
+const sevenDay = typeof rl.seven_day === "object" && rl.seven_day ? rl.seven_day : {};
 
-cost_usd=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-cost = d.get('cost', {}) or {}
-v = cost.get('total_cost_usd')
-print('' if v is None else v)
-")
+if (rl.five_hour || rl.seven_day) {
+  try {
+    const p = path.join(os.homedir(), ".claude", "statusline-rl-debug.json");
+    fs.writeFileSync(p, JSON.stringify(rl, null, 2));
+  } catch (e) {}
+}
 
-five_h_pct=$(echo "$input" | run_py -c "
-import sys, json
-d = json.load(sys.stdin)
-rl  = d.get('rate_limits', {}) or {}
-obj = rl.get('five_hour') or {}
-if not isinstance(obj, dict): obj = {}
-for key in ('percentage','used_percentage','percent_used','percentUsed'):
-    v = obj.get(key)
-    if v is not None: print(float(v)); exit()
-for uk in ('tokens_used','inputTokens','input_tokens','used'):
-    for lk in ('tokens_limit','tokens_max','limit','max'):
-        u, m = obj.get(uk), obj.get(lk)
-        if u is not None and m and float(m) > 0:
-            print(float(u)/float(m)*100); exit()
-print('')
-")
+const five_h_pct = pctFrom(fiveHour);
+const seven_d_pct = pctFrom(sevenDay);
+const five_h_reset = fmtReset(fiveHour);
+const seven_d_reset = fmtReset(sevenDay);
+const display_cwd = displayCwd(cwd);
 
-seven_d_pct=$(echo "$input" | run_py -c "
-import sys, json, os
-d = json.load(sys.stdin)
-rl  = d.get('rate_limits', {}) or {}
-obj = rl.get('seven_day') or {}
-if not isinstance(obj, dict): obj = {}
-# debug: dump full rate_limits when any field has data
-if rl.get('five_hour') or rl.get('seven_day'):
-    _p = os.path.join(os.path.expanduser('~'), '.claude', 'statusline-rl-debug.json')
-    with open(_p, 'w') as _f:
-        json.dump(rl, _f, indent=2)
-for key in ('percentage','used_percentage','percent_used','percentUsed'):
-    v = obj.get(key)
-    if v is not None: print(float(v)); exit()
-for uk in ('tokens_used','inputTokens','input_tokens','used'):
-    for lk in ('tokens_limit','tokens_max','limit','max'):
-        u, m = obj.get(uk), obj.get(lk)
-        if u is not None and m and float(m) > 0:
-            print(float(u)/float(m)*100); exit()
-print('')
-")
+console.log([cwd, model, used, session_name, cost_usd, five_h_pct, seven_d_pct, five_h_reset, seven_d_reset, display_cwd].join("\n"));
+')
+fi
 
-five_h_reset=$(echo "$input" | run_py -c "
-import sys, json
-from datetime import datetime, timezone
-d = json.load(sys.stdin)
-rl  = d.get('rate_limits', {}) or {}
-obj = rl.get('five_hour') or {}
-if not isinstance(obj, dict): obj = {}
-v = obj.get('resets_at') or obj.get('reset_at')
-if v:
-    try:
-        dt   = datetime.fromtimestamp(float(v), tz=timezone.utc) if isinstance(v, (int,float)) else datetime.fromisoformat(str(v).replace('Z','+00:00'))
-        secs = int((dt - datetime.now(timezone.utc)).total_seconds())
-        if secs <= 0: print('now')
-        else:
-            h = secs // 3600; m = (secs % 3600) // 60
-            print(f'{h}h{m:02d}m' if h > 0 else f'{m}m')
-    except: print('')
-else: print('')
-")
-
-seven_d_reset=$(echo "$input" | run_py -c "
-import sys, json
-from datetime import datetime, timezone
-d = json.load(sys.stdin)
-rl  = d.get('rate_limits', {}) or {}
-obj = rl.get('seven_day') or {}
-if not isinstance(obj, dict): obj = {}
-v = obj.get('resets_at') or obj.get('reset_at')
-if v:
-    try:
-        dt   = datetime.fromtimestamp(float(v), tz=timezone.utc) if isinstance(v, (int,float)) else datetime.fromisoformat(str(v).replace('Z','+00:00'))
-        secs = int((dt - datetime.now(timezone.utc)).total_seconds())
-        if secs <= 0: print('now')
-        else:
-            h = secs // 3600; m = (secs % 3600) // 60
-            print(f'{h}h{m:02d}m' if h > 0 else f'{m}m')
-    except: print('')
-else: print('')
-")
+mapfile -t _f <<< "$fields"
+cwd="${_f[0]}"
+model="${_f[1]}"
+used="${_f[2]}"
+session_name="${_f[3]}"
+cost_usd="${_f[4]}"
+five_h_pct="${_f[5]}"
+seven_d_pct="${_f[6]}"
+five_h_reset="${_f[7]}"
+seven_d_reset="${_f[8]}"
+display_cwd="${_f[9]}"
 
 # --- Git branch + dirty state ---
 branch=""
@@ -214,23 +187,6 @@ make_bar() {
 # --- Segments ---
 
 # 1. CWD
-display_cwd=$(echo "$cwd" | run_py -c "
-import sys, re
-p = sys.stdin.read().strip()
-parts = [x for x in re.split(r'[\\\\/]', p) if x]
-low = [x.lower() for x in parts]
-if len(low) >= 3 and low[0] in ('c:','d:') and low[1] == 'users':
-    parts = ['~'] + parts[3:]
-elif len(low) >= 2 and low[0] == 'users':
-    parts = ['~'] + parts[2:]
-if len(parts) > 2:
-    tail = parts[-2:]
-    sep = '\\\\\\\\' if '\\\\\\\\' in p else '/'
-    print('...' + sep + sep.join(tail))
-else:
-    sep = '\\\\\\\\' if '\\\\\\\\' in p else '/'
-    print(sep.join(parts))
-")
 seg_cwd=$(printf "${BOLD}${BLUE}%s${RESET}" "$display_cwd")
 
 # 2. Git branch + dirty markers (✚ staged / ● modified, shown only when > 0)
@@ -320,42 +276,48 @@ segs=()
 [ -n "$seg_session" ] && segs+=("$seg_session")
 [ -n "$seg_cost" ]    && segs+=("$seg_cost")
 
-if [ -n "$PYTHON_EXE" ] && [ "${#segs[@]}" -gt 0 ]; then
+if [ -n "$NODE_EXE" ] && [ "${#segs[@]}" -gt 0 ]; then
   # Greedy line-wrap by VISIBLE width (ANSI color codes are stripped when
   # measuring). Segments are fed NUL-separated so their contents stay intact.
-  printf '%s\0' "${segs[@]}" | run_py -c "
-import sys, re
-try:
-    cols = int(sys.argv[1])
-except (IndexError, ValueError):
-    cols = 0
-data = sys.stdin.buffer.read().decode('utf-8', 'replace')
-segs = [s for s in data.split('\0') if s != '']
-DIM = '\033[2m'; RESET = '\033[0m'
-sep = DIM + ' | ' + RESET
-sep_w = len(' | ')
-ansi = re.compile(r'\033\[[0-9;]*m')
-def vw(s):
-    return len(ansi.sub('', s))
-if cols <= 0:
-    cols = 10 ** 9
-lines = []
-cur = ''; cur_w = 0
-for s in segs:
-    w = vw(s)
-    if not cur:
-        cur, cur_w = s, w
-    elif cur_w + sep_w + w <= cols:
-        cur += sep + s; cur_w += sep_w + w
-    else:
-        lines.append(cur); cur, cur_w = s, w
-if cur:
-    lines.append(cur)
-out = '\n'.join(lines) + '\n'
-sys.stdout.buffer.write(out.encode('utf-8'))
-" "$avail"
+  printf '%s\0' "${segs[@]}" | "$NODE_EXE" -e '
+const fs = require("fs");
+
+let cols = parseInt(process.argv[1], 10);
+if (!Number.isFinite(cols) || cols <= 0) cols = Infinity;
+
+const data = fs.readFileSync(0, "utf8");
+const segs = data.split("\0").filter((s) => s !== "");
+
+const DIM = "[2m";
+const RESET = "[0m";
+const sep = DIM + " | " + RESET;
+const sepW = " | ".length;
+const ansi = /\[[0-9;]*m/g;
+const vw = (s) => s.replace(ansi, "").length;
+
+const lines = [];
+let cur = "";
+let curW = 0;
+for (const s of segs) {
+  const w = vw(s);
+  if (!cur) {
+    cur = s;
+    curW = w;
+  } else if (curW + sepW + w <= cols) {
+    cur += sep + s;
+    curW += sepW + w;
+  } else {
+    lines.push(cur);
+    cur = s;
+    curW = w;
+  }
+}
+if (cur) lines.push(cur);
+
+process.stdout.write(lines.join("\n") + "\n");
+' "$avail"
 else
-  # Fallback (no python): single line.
+  # Fallback (no node): single line.
   SEP=$(printf "${DIM} | ${RESET}")
   line=""
   for s in "${segs[@]}"; do
