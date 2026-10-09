@@ -31,7 +31,8 @@ from docx.shared import Cm, Emu, Pt, RGBColor
 
 BLACK = RGBColor(0, 0, 0)
 
-INLINE = re.compile(r"(\*\*.+?\*\*|\*.+?\*)")
+INLINE = re.compile(r"(`[^`]+`|\*\*.+?\*\*|\*.+?\*)")
+CODE_FONT = "Consolas"
 IMAGE = re.compile(r"^!\[(.*?)\]\((.+?)\)$")
 # Leading whitespace is captured, not skipped: it carries the nesting level.
 BULLET = re.compile(r"^(\s*)[-*]\s+(.*)$")
@@ -389,11 +390,11 @@ class DocxRenderer:
 
     # ---------- low-level helpers ----------
 
-    def style_run(self, run, bold=False, italic=False, size=None):
-        run.font.name = self.font
+    def style_run(self, run, bold=False, italic=False, size=None, font=None):
+        run.font.name = font or self.font
         # python-docx only writes w:ascii/w:hAnsi; w:eastAsia must be set by hand
         # or Word falls back to a different font for some glyphs.
-        run._element.rPr.rFonts.set(qn("w:eastAsia"), self.font)
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), font or self.font)
         run.font.size = size or self.body_size
         run.font.color.rgb = BLACK
         run.bold = bold
@@ -401,11 +402,13 @@ class DocxRenderer:
         return run
 
     def add_inline(self, paragraph, text, base_bold=False, size=None):
-        """Split a line on **bold** / *italic* markers and add styled runs."""
+        """Split a line on `code` / **bold** / *italic* markers and add styled runs."""
         for chunk in INLINE.split(text):
             if not chunk:
                 continue
-            if chunk.startswith("**") and chunk.endswith("**"):
+            if chunk.startswith("`") and chunk.endswith("`") and len(chunk) > 2:
+                self.style_run(paragraph.add_run(chunk[1:-1]), bold=base_bold, size=size, font=CODE_FONT)
+            elif chunk.startswith("**") and chunk.endswith("**"):
                 self.style_run(paragraph.add_run(chunk[2:-2]), bold=True, size=size)
             elif chunk.startswith("*") and chunk.endswith("*") and len(chunk) > 2:
                 self.style_run(paragraph.add_run(chunk[1:-1]), italic=True, size=size)
