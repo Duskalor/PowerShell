@@ -1,5 +1,5 @@
 <#
-    Dotfiles manifest — the single source of truth for what gets linked where.
+    Dotfiles manifest - the single source of truth for what gets linked where.
 
     Both bootstrap.ps1 and sync.ps1 read this file. Adding a new config to the
     repo means adding one row here; nothing else changes.

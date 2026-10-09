@@ -25,8 +25,11 @@
 .PARAMETER AllPackages
     Restore packages/winget.json, the full snapshot of this machine, instead of
     packages/winget-core.json. The snapshot includes games, office suites and
-    redistributables — everything that happened to be installed when it was
+    redistributables - everything that happened to be installed when it was
     exported.
+
+.PARAMETER SkipModules
+    Do not install PowerShell modules from the PowerShell Gallery.
 
 .PARAMETER SkipFont
     Do not install IosevkaTerm Nerd Font.
@@ -49,6 +52,7 @@
 param(
     [switch]$SkipPackages,
     [switch]$AllPackages,
+    [switch]$SkipModules,
     [switch]$SkipFont,
     [switch]$SkipEngram,
     [switch]$DryRun
@@ -61,6 +65,10 @@ $RepoUrl   = 'https://github.com/Duskalor/PowerShell.git'
 $FontUrl   = 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/IosevkaTerm.zip'
 $FontName  = 'IosevkaTermNerdFont'
 $EngramApi = 'https://api.github.com/repos/Gentleman-Programming/engram/releases/latest'
+
+# Gallery modules the profile imports. They install into the profile directory,
+# which is this repository, so git ignores Modules/ and this list restores it.
+$Modules   = @('Terminal-Icons')
 
 $script:Done    = @()
 $script:Skipped = @()
@@ -77,6 +85,31 @@ function Write-Note { param([string]$Text) Write-Host "           $Text" -Foregr
 function Test-Tool {
     param([Parameter(Mandatory)][string]$Name)
     $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+<#
+    Stop the installer with an exit code.
+
+    Under "irm | iex" there is no script file, and a bare exit would close the
+    terminal the user is reading the failure in. Throwing ends the run and
+    leaves the window open; a script run with -File still gets a real exit code.
+#>
+function Stop-Install {
+    param([int]$Code = 1)
+    if ($PSCommandPath) { exit $Code }
+    throw "install.ps1 stopped (exit code $Code)"
+}
+
+<#
+    Run git with its output discarded.
+
+    git writes progress such as "Cloning into ..." to stderr. Windows
+    PowerShell 5.1 turns redirected stderr into error records, which
+    $ErrorActionPreference = 'Stop' makes fatal. Callers read $LASTEXITCODE.
+#>
+function Invoke-GitQuiet {
+    $ErrorActionPreference = 'Continue'
+    & git @args *> $null
 }
 
 <#
@@ -107,20 +140,40 @@ function Get-RepoPath {
 }
 
 # The same probe bootstrap.ps1 uses, inlined because lib/ is not cloned yet.
+$SymlinkProbe = @'
+$ProgressPreference = 'SilentlyContinue'
+$probeDir  = Join-Path ([System.IO.Path]::GetTempPath()) ('install-probe-' + [guid]::NewGuid().ToString('N'))
+$probeFile = Join-Path $probeDir 'source.txt'
+$probeLink = Join-Path $probeDir 'link.txt'
+try {
+    New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+    Set-Content -LiteralPath $probeFile -Value 'probe' -NoNewline
+    New-Item -ItemType SymbolicLink -Path $probeLink -Value $probeFile -ErrorAction Stop | Out-Null
+    $true
+} catch {
+    $false
+} finally {
+    Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+'@
+
+<#
+    Probe in the shell that will create the links, which is PowerShell 7.
+
+    Windows PowerShell 5.1 cannot create a symbolic link without elevation even
+    with Developer Mode on: its New-Item never passes the unprivileged-create
+    flag. bootstrap.ps1 runs under pwsh, so probing 5.1 would fail a machine
+    that is actually fine.
+#>
 function Test-SymlinkCapability {
-    $probeDir  = Join-Path ([System.IO.Path]::GetTempPath()) ('install-probe-' + [guid]::NewGuid().ToString('N'))
-    $probeFile = Join-Path $probeDir 'source.txt'
-    $probeLink = Join-Path $probeDir 'link.txt'
-    try {
-        New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
-        Set-Content -LiteralPath $probeFile -Value 'probe' -NoNewline
-        New-Item -ItemType SymbolicLink -Path $probeLink -Value $probeFile -ErrorAction Stop | Out-Null
-        return $true
-    } catch {
-        return $false
-    } finally {
-        Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+    param([string]$Pwsh)
+    # Anything pwsh writes to stderr must not become fatal under 5.1.
+    $ErrorActionPreference = 'Continue'
+    if ($Pwsh) {
+        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($SymlinkProbe))
+        return ("$(& $Pwsh -NoProfile -EncodedCommand $encoded 2>$null)".Trim() -eq 'True')
     }
+    [bool](& ([scriptblock]::Create($SymlinkProbe)))
 }
 
 Write-Host ''
@@ -135,18 +188,9 @@ if (-not (Test-Tool 'winget')) {
     Write-Bad 'winget is not available'
     Write-Note 'Install "App Installer" from the Microsoft Store, then run this again:'
     Write-Note 'https://apps.microsoft.com/detail/9nblggh4nns1'
-    exit 1
+    Stop-Install 1
 }
 Write-Ok 'winget'
-
-if (Test-SymlinkCapability) {
-    Write-Ok 'symbolic links allowed'
-} else {
-    Write-Bad 'this shell cannot create symbolic links'
-    Write-Note 'Settings > System > For developers > Developer Mode: On'
-    Write-Note 'or re-run this script from a terminal opened as Administrator.'
-    exit 1
-}
 
 if (Test-Tool 'git') {
     Write-Ok 'git'
@@ -159,13 +203,14 @@ if (Test-Tool 'git') {
     if (Test-Tool 'git') {
         Write-Ok 'git installed'
     } else {
-        Write-Bad 'git was installed but is not on PATH — open a new terminal and run this again'
-        exit 1
+        Write-Bad 'git was installed but is not on PATH - open a new terminal and run this again'
+        Stop-Install 1
     }
 }
 
-# PowerShell 7 is what the profile is written for. Installing it here means the
-# clone in the next step lands somewhere that will actually be read.
+# PowerShell 7 is what the profile is written for, and the shell that runs
+# bootstrap.ps1. Installing it here means the clone in the next step lands
+# somewhere that will actually be read.
 if ($PSVersionTable.PSVersion.Major -lt 6 -and -not (Test-Tool 'pwsh')) {
     if ($DryRun) {
         Write-Plan 'install Microsoft.PowerShell (PowerShell 7)'
@@ -179,6 +224,51 @@ if ($PSVersionTable.PSVersion.Major -lt 6 -and -not (Test-Tool 'pwsh')) {
     Write-Ok 'PowerShell 7'
 }
 
+$pwshCmd = Get-Command pwsh -ErrorAction SilentlyContinue
+
+$identity = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+$isAdmin  = $identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$devKey   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+$devMode  = (Get-ItemProperty -Path $devKey -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense -eq 1
+
+# An elevated shell can create links today, but sync.ps1 and bootstrap.ps1 run
+# later from a normal terminal. Developer Mode is what lets those relink.
+if ($isAdmin -and -not $devMode) {
+    if ($DryRun) {
+        Write-Plan 'turn on Developer Mode so later runs need no elevation'
+    } else {
+        try {
+            if (-not (Test-Path $devKey)) { New-Item -Path $devKey -Force | Out-Null }
+            New-ItemProperty -Path $devKey -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWord -Force | Out-Null
+            Write-Ok 'Developer Mode turned on'
+        } catch {
+            Write-Warn "could not turn on Developer Mode: $($_.Exception.Message)"
+        }
+    }
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $canLink = Test-SymlinkCapability
+} elseif ($pwshCmd) {
+    $canLink = Test-SymlinkCapability -Pwsh $pwshCmd.Source
+} else {
+    $canLink = $null
+}
+
+if ($canLink) {
+    Write-Ok 'symbolic links allowed'
+} elseif ($null -eq $canLink -and $DryRun) {
+    Write-Plan 'check symbolic links once PowerShell 7 is installed'
+} elseif ($null -eq $canLink) {
+    Write-Bad 'PowerShell 7 is not on PATH yet - open a new terminal and run this again'
+    Stop-Install 1
+} else {
+    Write-Bad 'PowerShell 7 cannot create symbolic links'
+    Write-Note 'Settings > System > For developers > Developer Mode: On'
+    Write-Note 'or re-run this script from a terminal opened as Administrator.'
+    Stop-Install 1
+}
+
 # --- 2. Repository ------------------------------------------------------------
 Write-Head '2. Repository'
 
@@ -189,11 +279,11 @@ if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
     if ($DryRun) {
         Write-Plan 'pull the latest commits'
     } else {
-        git -C $repo pull --ff-only 2>&1 | Out-Null
+        Invoke-GitQuiet -C $repo pull --ff-only
         if ($LASTEXITCODE -eq 0) {
             Write-Ok 'repository up to date'
         } else {
-            Write-Warn 'could not fast-forward — leaving the working copy untouched'
+            Write-Warn 'could not fast-forward - leaving the working copy untouched'
         }
     }
 } elseif ($DryRun) {
@@ -207,12 +297,12 @@ if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
         Move-Item -LiteralPath $repo -Destination $moved
         Write-Warn "existing profile directory moved to $moved"
     }
-    git clone $RepoUrl $repo 2>&1 | Out-Null
+    Invoke-GitQuiet clone $RepoUrl $repo
     if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
         Write-Ok 'cloned'
     } else {
         Write-Bad 'clone failed'
-        exit 1
+        Stop-Install 1
     }
 }
 
@@ -224,7 +314,7 @@ if ($SkipPackages) {
 } else {
     if ($AllPackages) {
         $listName = 'winget.json'
-        Write-Note 'full machine snapshot — this includes games and office suites'
+        Write-Note 'full machine snapshot - this includes games and office suites'
     } else {
         $listName = 'winget-core.json'
         Write-Note 'curated toolchain. Pass -AllPackages for the full snapshot.'
@@ -243,14 +333,50 @@ if ($SkipPackages) {
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "$listName imported"
         } else {
-            Write-Warn "$listName imported with warnings (exit $LASTEXITCODE) — usually packages already installed"
+            Write-Warn "$listName imported with warnings (exit $LASTEXITCODE) - usually packages already installed"
         }
         Update-SessionPath
     }
 }
 
-# --- 4. Font ------------------------------------------------------------------
-Write-Head '4. Font'
+# --- 4. PowerShell modules ----------------------------------------------------
+Write-Head '4. PowerShell modules'
+
+# Installed through pwsh, not the shell running this script: under 5.1 the
+# CurrentUser scope is WindowsPowerShell\Modules, which pwsh's profile never reads.
+# Resolved again because step 3 may have just put pwsh on PATH.
+$pwshCmd = Get-Command pwsh -ErrorAction SilentlyContinue
+
+if ($SkipModules) {
+    Write-Skip 'modules (-SkipModules)'
+} elseif (-not $pwshCmd) {
+    if ($DryRun) {
+        Write-Plan "install $($Modules -join ', ') once PowerShell 7 is present"
+    } else {
+        Write-Bad 'pwsh not found, cannot install PowerShell modules'
+    }
+} else {
+    foreach ($name in $Modules) {
+        $present = & $pwshCmd.Source -NoProfile -Command "[bool](Get-Module -ListAvailable -Name '$name')"
+        if ("$present".Trim() -eq 'True') {
+            Write-Skip "$name already installed"
+        } elseif ($DryRun) {
+            Write-Plan "install $name from the PowerShell Gallery"
+        } else {
+            # PSResourceGet ships with PowerShell 7.4+ and needs no NuGet
+            # bootstrap prompt; PowerShellGet is the fallback for older builds.
+            $install = "`$ErrorActionPreference = 'Stop'; " +
+                "if (Get-Command Install-PSResource -ErrorAction SilentlyContinue) " +
+                "{ Install-PSResource -Name '$name' -Scope CurrentUser -TrustRepository -Quiet } " +
+                "else { Install-Module -Name '$name' -Scope CurrentUser -Force }"
+            & $pwshCmd.Source -NoProfile -Command $install
+            if ($LASTEXITCODE -eq 0) { Write-Ok $name } else { Write-Bad "module install: $name" }
+        }
+    }
+}
+
+# --- 5. Font ------------------------------------------------------------------
+Write-Head '5. Font'
 
 $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
 $already = @(Get-ChildItem -LiteralPath $fontDir -Filter "$FontName-*.ttf" -ErrorAction SilentlyContinue)
@@ -298,8 +424,8 @@ if ($SkipFont) {
     }
 }
 
-# --- 5. Engram ----------------------------------------------------------------
-Write-Head '5. Engram'
+# --- 6. Engram ----------------------------------------------------------------
+Write-Head '6. Engram'
 
 $binDir     = Join-Path $HOME 'bin'
 $engramPath = Join-Path $binDir 'engram.exe'
@@ -336,7 +462,8 @@ if ($SkipEngram) {
     }
 }
 
-# ~/bin holds engram and gga, so it goes on PATH whether or not engram landed.
+# ~/bin holds engram and other standalone binaries, so it goes on PATH whether
+# or not engram landed.
 if ($DryRun) {
     if (($env:Path -split ';') -notcontains $binDir) { Write-Plan 'add ~/bin to the user PATH' }
 } else {
@@ -349,16 +476,24 @@ if ($DryRun) {
     }
 }
 
-# --- 6. Link the configuration ------------------------------------------------
-Write-Head '6. Link the configuration'
+# --- 7. Link the configuration ------------------------------------------------
+Write-Head '7. Link the configuration'
 
 $bootstrap = Join-Path $repo 'bootstrap.ps1'
+# An array splats as native arguments for pwsh.exe; a script needs a hashtable.
+$bootArgs  = @()
+$bootSplat = @{}
+if ($DryRun) { $bootArgs += '-DryRun'; $bootSplat.DryRun = $true }
+
 if (-not (Test-Path -LiteralPath $bootstrap)) {
     Write-Bad "bootstrap.ps1 not found at $bootstrap"
-} elseif ($DryRun) {
-    & $bootstrap -DryRun
+} elseif ($PSVersionTable.PSVersion.Major -lt 6 -and $pwshCmd) {
+    # Linking needs PowerShell 7 (see Test-SymlinkCapability), and -File runs
+    # under pwsh's own execution policy rather than 5.1's default Restricted.
+    & $pwshCmd.Source -NoProfile -File $bootstrap @bootArgs
+    if ($LASTEXITCODE -ne 0) { Write-Bad 'bootstrap.ps1 reported failures' }
 } else {
-    & $bootstrap
+    & $bootstrap @bootSplat
 }
 
 # --- Summary ------------------------------------------------------------------
@@ -375,4 +510,4 @@ Write-Host '    1. close this terminal and open Alacritty'
 Write-Host '    2. run  cmds            to see every command the profile defines'
 Write-Host '    3. run  .\sync.ps1 -Check   whenever something feels out of date'
 Write-Host ''
-if ($script:Failed.Count -gt 0) { exit 1 }
+if ($script:Failed.Count -gt 0) { Stop-Install 1 }

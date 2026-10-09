@@ -114,8 +114,8 @@ foreach ($link in $manifest.Links) {
     Rendered configs need the same treatment for a different reason.
 
     A link cannot drift in content, only in kind. A rendered file is an ordinary
-    file, so an edit made on the machine — by hand, or by the application
-    rewriting its own config — is invisible to the repository. That is precisely
+    file, so an edit made on the machine - by hand, or by the application
+    rewriting its own config - is invisible to the repository. That is precisely
     the failure this repository exists to prevent, so it gets caught here.
 
     The rescue is the expansion run backwards: this machine's own paths become

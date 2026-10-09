@@ -41,6 +41,10 @@ config/opencode/node_modules/
 config/opencode/bun.lock
 config/opencode/package-lock.json
 
+# PowerShell modules land here because this repository is the profile
+# directory. install.ps1 restores them from the PowerShell Gallery.
+Modules/
+
 # Agent tooling local cache
 .atl/
 
