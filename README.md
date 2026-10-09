@@ -334,8 +334,11 @@ Anything that turns up in a `Links` entry is a bug. Move it to `Rendered`.
 |---------|-------------|
 | `cf <path> <files>` | Create folder + files (`.ts` default) |
 | `newdb` | Spin up Postgres via Docker |
-| `rmj [name]` | Parse judicial HTML to searchable TXT + HTML |
 | `cmds` | Show all profile commands (`ghelp` is an alias) |
+
+Machine specific commands (other drives, local-only projects) go in
+`profile.local.ps1` next to the profile. Git ignores it and the profile
+dot-sources it last when it exists.
 
 ### Zellij (inside Zellij only)
 

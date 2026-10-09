@@ -29,6 +29,7 @@ desktop.ini
 *_secret*
 
 # Machine specific overrides, seeded from the .example files
+profile.local.ps1
 settings.local.json
 *.local.json
 !*.local.json.example

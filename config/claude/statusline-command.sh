@@ -11,8 +11,11 @@ elif command -v python >/dev/null 2>&1; then
 elif command -v py >/dev/null 2>&1; then
   PYTHON_EXE="py"
   PYTHON_PRE="-3"
-elif [ -x "/c/Users/Paul Cruz/AppData/Local/Programs/Python/Python311/python.exe" ]; then
-  PYTHON_EXE="/c/Users/Paul Cruz/AppData/Local/Programs/Python/Python311/python.exe"
+else
+  # Per-user python.org installs that never made it onto PATH; newest wins.
+  for candidate in "$HOME"/AppData/Local/Programs/Python/Python3*/python.exe; do
+    [ -x "$candidate" ] && PYTHON_EXE="$candidate"
+  done
 fi
 
 run_py() {
