@@ -21,6 +21,12 @@
 				{ "PackageIdentifier" : "OpenJS.NodeJS.22" },
 				{ "PackageIdentifier" : "Microsoft.VisualStudioCode" },
 				{ "PackageIdentifier" : "Anthropic.Claude" },
+				{ "PackageIdentifier" : "Anthropic.ClaudeCode" },
+				{ "PackageIdentifier" : "SST.opencode" },
+				{ "PackageIdentifier" : "Python.Python.3.13" },
+				{ "PackageIdentifier" : "pnpm.pnpm" },
+				{ "PackageIdentifier" : "Oven-sh.Bun" },
+				{ "PackageIdentifier" : "jqlang.jq" },
 				{ "PackageIdentifier" : "MSYS2.MSYS2" }
 			],
 			"SourceDetails" :
