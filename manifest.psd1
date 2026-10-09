@@ -37,10 +37,9 @@
         @{ Repo = 'config/claude/agents';               Target = '{HOME}/.claude/agents';                     Type = 'Directory' }
         @{ Repo = 'config/claude/commands';             Target = '{HOME}/.claude/commands';                   Type = 'Directory' }
         @{ Repo = 'config/claude/output-styles';        Target = '{HOME}/.claude/output-styles';              Type = 'Directory' }
-        @{ Repo = 'config/claude/skills';               Target = '{HOME}/.claude/skills';                     Type = 'Directory' }
-
-        # --- Shared agent skills (the real source behind crush/goose symlinks) ---
-        @{ Repo = 'config/agents/skills';               Target = '{HOME}/.agents/skills';                     Type = 'Directory' }
+        # --- Agent skills: one tree shared by Claude Code, OpenCode and ~/.agents ---
+        @{ Repo = 'config/skills';                      Target = '{HOME}/.claude/skills';                     Type = 'Directory' }
+        @{ Repo = 'config/skills';                      Target = '{HOME}/.agents/skills';                     Type = 'Directory' }
 
         # --- OpenCode (entry by entry: node_modules stays local) ---
         # opencode.json is rendered, see Rendered below.
@@ -53,7 +52,7 @@
         @{ Repo = 'config/opencode/plugins';            Target = '{HOME}/.config/opencode/plugins';           Type = 'Directory' }
         @{ Repo = 'config/opencode/profiles';           Target = '{HOME}/.config/opencode/profiles';          Type = 'Directory' }
         @{ Repo = 'config/opencode/prompts';            Target = '{HOME}/.config/opencode/prompts';           Type = 'Directory' }
-        @{ Repo = 'config/opencode/skills';             Target = '{HOME}/.config/opencode/skills';            Type = 'Directory' }
+        @{ Repo = 'config/skills';                      Target = '{HOME}/.config/opencode/skills';            Type = 'Directory' }
 
         # --- Gentleman Guardian Angel ---
         @{ Repo = 'config/gga/AGENTS.md';               Target = '{HOME}/.config/gga/AGENTS.md';              Type = 'File' }

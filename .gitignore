@@ -44,6 +44,10 @@ config/opencode/package-lock.json
 # Agent tooling local cache
 .atl/
 
+# Skills the Claude desktop app syncs into ~/.claude/skills, which is linked
+# to config/skills. They are downloaded by the app, not configuration.
+config/skills/synced/
+
 # Compiled Python bytecode from bundled skill scripts
 __pycache__/
 *.pyc
