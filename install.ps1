@@ -13,11 +13,21 @@
 
         irm https://raw.githubusercontent.com/Duskalor/PowerShell/main/install.ps1 | iex
 
+    "irm | iex" cannot pass parameters. To pass any, such as -Branch to test a
+    branch before it is merged, run the downloaded text as a script block:
+
+        $u = 'https://raw.githubusercontent.com/Duskalor/PowerShell/<branch>/install.ps1'
+        & ([scriptblock]::Create((irm $u))) -Branch <branch>
+
     Every step checks before it acts, so running this again on a configured
     machine repairs it rather than duplicating anything.
 
     It deliberately runs under Windows PowerShell 5.1 as well as PowerShell 7,
     because 5.1 is what a fresh Windows install actually ships with.
+
+.PARAMETER Branch
+    Branch to clone. Defaults to main. An existing clone is left on whatever
+    branch it is on; only a fresh clone uses this.
 
 .PARAMETER SkipPackages
     Do not install applications with winget.
@@ -50,6 +60,7 @@
 #>
 [CmdletBinding()]
 param(
+    [string]$Branch = 'main',
     [switch]$SkipPackages,
     [switch]$AllPackages,
     [switch]$SkipModules,
@@ -287,7 +298,7 @@ if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
         }
     }
 } elseif ($DryRun) {
-    Write-Plan "clone $RepoUrl"
+    Write-Plan "clone $RepoUrl ($Branch)"
 } else {
     # A profile directory usually already exists and holds a stock profile.
     # git refuses to clone into a non-empty directory, so move the old one aside
@@ -297,9 +308,9 @@ if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
         Move-Item -LiteralPath $repo -Destination $moved
         Write-Warn "existing profile directory moved to $moved"
     }
-    Invoke-GitQuiet clone $RepoUrl $repo
+    Invoke-GitQuiet clone --branch $Branch $RepoUrl $repo
     if (Test-Path -LiteralPath (Join-Path $repo '.git')) {
-        Write-Ok 'cloned'
+        Write-Ok "cloned ($Branch)"
     } else {
         Write-Bad 'clone failed'
         Stop-Install 1
