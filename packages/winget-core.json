@@ -26,8 +26,7 @@
 				{ "PackageIdentifier" : "Python.Python.3.13" },
 				{ "PackageIdentifier" : "pnpm.pnpm" },
 				{ "PackageIdentifier" : "Oven-sh.Bun" },
-				{ "PackageIdentifier" : "jqlang.jq" },
-				{ "PackageIdentifier" : "MSYS2.MSYS2" }
+				{ "PackageIdentifier" : "jqlang.jq" }
 			],
 			"SourceDetails" :
 			{
