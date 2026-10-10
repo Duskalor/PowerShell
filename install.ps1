@@ -242,20 +242,45 @@ $isAdmin  = $identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administ
 $devKey   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
 $devMode  = (Get-ItemProperty -Path $devKey -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense -eq 1
 
-# An elevated shell can create links today, but sync.ps1 and bootstrap.ps1 run
-# later from a normal terminal. Developer Mode is what lets those relink.
-if ($isAdmin -and -not $devMode) {
-    if ($DryRun) {
-        Write-Plan 'turn on Developer Mode so later runs need no elevation'
-    } else {
-        try {
-            if (-not (Test-Path $devKey)) { New-Item -Path $devKey -Force | Out-Null }
-            New-ItemProperty -Path $devKey -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWord -Force | Out-Null
-            Write-Ok 'Developer Mode turned on'
-        } catch {
-            Write-Warn "could not turn on Developer Mode: $($_.Exception.Message)"
-        }
+<#
+    Developer Mode is what lets a normal terminal create symbolic links, now
+    and every time sync.ps1 or bootstrap.ps1 relinks later.
+
+    It is the only step that needs elevation, so only it is elevated: a short
+    child process writes one machine-wide registry value. The installer itself
+    keeps running as the current user. Elevating the whole run would install
+    per-user packages, the font and the links into whichever account UAC
+    authenticated, which is not necessarily this one.
+#>
+$EnableDevMode = @"
+`$key = '$devKey'
+if (-not (Test-Path `$key)) { New-Item -Path `$key -Force | Out-Null }
+New-ItemProperty -Path `$key -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWord -Force | Out-Null
+"@
+
+if ($devMode) {
+    Write-Ok 'Developer Mode'
+} elseif ($DryRun) {
+    if ($isAdmin) { $how = 'directly' } else { $how = 'through a UAC prompt' }
+    Write-Plan "turn on Developer Mode $how"
+} elseif ($isAdmin) {
+    try {
+        & ([scriptblock]::Create($EnableDevMode))
+        Write-Ok 'Developer Mode turned on'
+    } catch {
+        Write-Warn "could not turn on Developer Mode: $($_.Exception.Message)"
     }
+} else {
+    Write-Host '  ...      Developer Mode is off; approve the UAC prompt to turn it on' -ForegroundColor DarkGray
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($EnableDevMode))
+    try {
+        Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -WindowStyle Hidden `
+            -ArgumentList '-NoProfile', '-EncodedCommand', $encoded
+    } catch {
+        # Declining the UAC prompt lands here; the link probe below reports it.
+    }
+    $devMode = (Get-ItemProperty -Path $devKey -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense -eq 1
+    if ($devMode) { Write-Ok 'Developer Mode turned on' } else { Write-Warn 'Developer Mode is still off' }
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 6) {
@@ -275,8 +300,8 @@ if ($canLink) {
     Stop-Install 1
 } else {
     Write-Bad 'PowerShell 7 cannot create symbolic links'
+    Write-Note 'Approve the UAC prompt when it appears, or turn it on by hand:'
     Write-Note 'Settings > System > For developers > Developer Mode: On'
-    Write-Note 'or re-run this script from a terminal opened as Administrator.'
     Stop-Install 1
 }
 
