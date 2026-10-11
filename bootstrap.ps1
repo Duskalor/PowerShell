@@ -52,7 +52,7 @@ if (-not $DryRun -and -not (Test-SymlinkCapability)) {
     exit 1
 }
 
-$counts = @{ Linked = 0; Created = 0; Replaced = 0; Rendered = 0; Skipped = 0; Failed = 0 }
+$counts = @{ Linked = 0; Created = 0; Replaced = 0; Rendered = 0; Downloaded = 0; Skipped = 0; Failed = 0 }
 
 foreach ($link in $manifest.Links) {
     $source = Join-Path $root $link.Repo.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
@@ -203,8 +203,60 @@ foreach ($template in $manifest.Templates) {
     Write-Host "  seeded   $(Split-Path -Leaf $target) - fill in your own values" -ForegroundColor Green
 }
 
+# Binaries too large to commit. The repository cannot carry them, but it can
+# carry the exact version and checksum, which is enough to reproduce them.
+# Download to a temporary file and verify it there: a truncated or substituted
+# asset then never reaches the target, and an existing good file is left alone.
+if ($manifest.Contains('Downloads')) {
+    # Windows PowerShell 5.1 still defaults to TLS 1.0, which GitHub refuses.
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+    foreach ($download in $manifest.Downloads) {
+        $target = Expand-DotfilesToken -Path $download.Target
+        $label  = Split-Path -Leaf $target
+        $want   = $download.Sha256.ToLowerInvariant()
+
+        if (Test-Path -LiteralPath $target) {
+            $have = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($have -eq $want) {
+                $counts.Linked++
+                Write-Verbose "already downloaded: $label"
+                continue
+            }
+        }
+
+        if ($DryRun) {
+            Write-Host "  would fetch $label" -ForegroundColor Yellow
+            Write-Host "           $($download.Url)" -ForegroundColor DarkGray
+            continue
+        }
+
+        $temp = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString('N') + '.part')
+        try {
+            Invoke-WebRequest -Uri $download.Url -OutFile $temp -UseBasicParsing
+
+            $got = (Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($got -ne $want) {
+                throw "checksum mismatch: expected $want, got $got"
+            }
+
+            New-DotfilesParent -Path $target
+            Move-Item -LiteralPath $temp -Destination $target -Force
+
+            $counts.Downloaded++
+            Write-Host "  fetched  $label" -ForegroundColor Green
+        } catch {
+            $counts.Failed++
+            Write-Host "  FAILED   $label" -ForegroundColor Red
+            Write-Host "           $($_.Exception.Message)" -ForegroundColor Red
+        } finally {
+            if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force }
+        }
+    }
+}
+
 Write-Host ''
-Write-Host "  linked $($counts.Created)  rendered $($counts.Rendered)  replaced $($counts.Replaced)  already ok $($counts.Linked)  skipped $($counts.Skipped)  failed $($counts.Failed)"
+Write-Host "  linked $($counts.Created)  rendered $($counts.Rendered)  replaced $($counts.Replaced)  fetched $($counts.Downloaded)  already ok $($counts.Linked)  skipped $($counts.Skipped)  failed $($counts.Failed)"
 if (-not $DryRun -and $counts.Replaced -gt 0 -and -not $Force) {
     Write-Host "  previous files kept in $backupDir" -ForegroundColor DarkGray
 }
