@@ -342,12 +342,10 @@ keybinds clear-defaults=true {
             floating true
             }
         }
-        bind "Ctrl h" { MoveFocusOrTab "left"; }
-        bind "Ctrl j" { MoveFocus "down"; }
-        bind "Ctrl k" { MoveFocus "up"; }
-        // Tab navigation without a prefix: "l" previous, "p" next.
-        // "Ctrl l" used to be MoveFocusOrTab "right"; pane focus right is still
-        // on "Ctrl a + l", on "Alt right", and in pane mode (Ctrl g -> p).
+        // One modifier, one concept: Ctrl moves between tabs, Alt moves between
+        // panes. Ctrl h/j/k used to focus panes here, which left three keys on
+        // panes and the fourth on tabs; they were exact duplicates of Alt h/j/k,
+        // so dropping them costs nothing and keeps the row consistent.
         bind "Ctrl l" { GoToPreviousTab; }
         bind "Ctrl p" { GoToNextTab; }
         bind "Alt left" { MoveFocusOrTab "left"; }
@@ -365,7 +363,14 @@ keybinds clear-defaults=true {
         bind "Alt i" { MoveTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
         bind "Alt k" { MoveFocus "up"; }
-        bind "Alt l" { MoveFocusOrTab "right"; }
+        // Pane cycling, the Alt mirror of Ctrl l / Ctrl p: "l" previous, "p"
+        // next. Cyclic rather than directional on purpose. Alt 1 and Alt 2 flip
+        // the layout between side-by-side and stacked, so a directional binding
+        // would point the wrong way half the time; cycling does not care about
+        // geometry. It also stays inside the tab, where MoveFocusOrTab would
+        // jump to the neighbouring tab at the edge and break the split above.
+        bind "Alt l" { FocusPreviousPane; }
+        bind "Alt p" { FocusNextPane; }
         bind "Alt n" { NewPane; }
         bind "Alt o" { MoveTab "right"; }
     }
