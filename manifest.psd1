@@ -13,6 +13,10 @@
     artifacts. ~/.claude carries ~350 MB of session history and plugins,
     ~/.config/opencode carries node_modules, and ~/.config/zellij carries
     downloaded .wasm plugins. Those directories are linked entry by entry.
+
+    Those .wasm plugins are not committed, but they are not left to chance
+    either: see Downloads at the bottom, which fetches them from a pinned
+    release and verifies the checksum.
 #>
 @{
     Links = @(
@@ -93,5 +97,32 @@
     # are never committed.
     Templates = @(
         @{ Example = 'config/claude/settings.local.json.example'; Target = '{HOME}/.claude/settings.local.json' }
+    )
+
+    <#
+        Binaries too large to commit, fetched from their upstream release.
+
+        Url     : exact release asset. Pinned to a version on purpose - "latest"
+                  would hand a new machine a plugin the committed layouts were
+                  never written against.
+        Sha256  : checksum of that asset. The download is verified before it is
+                  moved into place, so a truncated or substituted file never
+                  reaches the target.
+
+        The Zellij layouts reference these with the file: protocol, which does
+        not fetch anything. Without this section a fresh machine renders no
+        status bar at all, because the layouts in use carry no native one.
+    #>
+    Downloads = @(
+        @{
+            Target = '{HOME}/.config/zellij/plugins/zjstatus.wasm'
+            Url    = 'https://github.com/dj95/zjstatus/releases/download/v0.23.0/zjstatus.wasm'
+            Sha256 = 'e006901223524239db618021e4cc5d17f82dc4bfae5432895ba41f03f13861ff'
+        }
+        @{
+            Target = '{HOME}/.config/zellij/plugins/zellij_forgot.wasm'
+            Url    = 'https://github.com/karimould/zellij-forgot/releases/download/0.4.2/zellij_forgot.wasm'
+            Sha256 = '31194145519dbdc128685b456f970374378fa19fc9da742fbe4a321bace449db'
+        }
     )
 }

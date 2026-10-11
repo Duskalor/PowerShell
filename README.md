@@ -221,7 +221,7 @@ they are rebuilt by the tools that own them.
 | `~/.claude/projects`, `file-history`, `cache`, `sessions` | ~300 MB | rebuilt as you work |
 | `~/.claude/plugins` | 65 MB | Claude Code plugin install |
 | `~/.config/opencode/node_modules` | 136 MB | `npm install` |
-| `~/.config/zellij/plugins` | 8 MB | downloaded `.wasm`, fetched on demand |
+| `~/.config/zellij/plugins` | 8 MB | `bootstrap.ps1`, from the `Downloads` list in `manifest.psd1` |
 | `Modules/` (PowerShell Gallery modules) | 1 MB | `install.ps1`, from its `$Modules` list |
 
 Directories that mix configuration with cache are linked **entry by entry**,
