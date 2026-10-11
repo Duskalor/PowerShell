@@ -345,11 +345,11 @@ keybinds clear-defaults=true {
         bind "Ctrl h" { MoveFocusOrTab "left"; }
         bind "Ctrl j" { MoveFocus "down"; }
         bind "Ctrl k" { MoveFocus "up"; }
-        // Tab navigation without a prefix: "p" previous, "l" next.
+        // Tab navigation without a prefix: "l" previous, "p" next.
         // "Ctrl l" used to be MoveFocusOrTab "right"; pane focus right is still
         // on "Ctrl a + l", on "Alt right", and in pane mode (Ctrl g -> p).
-        bind "Ctrl l" { GoToNextTab; }
-        bind "Ctrl p" { GoToPreviousTab; }
+        bind "Ctrl l" { GoToPreviousTab; }
+        bind "Ctrl p" { GoToNextTab; }
         bind "Alt left" { MoveFocusOrTab "left"; }
         bind "Alt down" { MoveFocus "down"; }
         bind "Alt up" { MoveFocus "up"; }
