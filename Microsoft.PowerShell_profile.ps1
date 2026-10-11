@@ -1,4 +1,5 @@
-﻿$user = $env:USERNAME
+﻿# Documents can be redirected by OneDrive; the shell folder API knows where.
+$projects = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Proyects'
 
 Set-PsReadLineOption -PredictionViewStyle ListView
 
@@ -25,41 +26,41 @@ if ($env:ZELLIJ) {
     }
 }
 
-# â”€â”€â”€ Floating pane toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Floating pane toggle ──────────────────────────────────────────────
 # _zflt:   Crea/toggle pane flotante con el CWD del panel actual.
-# _zfltf:  Fuerza creaciÃ³n (Ãºtil si mataron el proceso flotante).
+# _zfltf:  Fuerza creación (útil si mataron el proceso flotante).
 #
-# 1er Alt+F en un panel         â†’ crea floating pane en el CWD de ESE panel.
-# 2do Alt+F en el mismo panel    â†’ toggle (hide/show). El proceso sigue vivo.
-# Alt+F, f (rÃ¡pido, secuencia)   â†’ fuerza crear uno nuevo (reset).
+# 1er Alt+F en un panel         → crea floating pane en el CWD de ESE panel.
+# 2do Alt+F en el mismo panel    → toggle (hide/show). El proceso sigue vivo.
+# Alt+F, f (rápido, secuencia)   → fuerza crear uno nuevo (reset).
 #
-# NOTA: Desde la ventana flotante misma NO uses Alt+F (crearÃ­a otra).
-#       UsÃ¡ click, Alt+arrow o Ctrl+g, p, w para salir/volver.
+# NOTA: Desde la ventana flotante misma NO uses Alt+F (crearía otra).
+#       Usá click, Alt+arrow o Ctrl+g, p, w para salir/volver.
 $script:ZjFloatCreated = $false
 
 function _zflt {
     if ($script:ZjFloatCreated) {
-        # Ya existe un floating pane desde este panel â†’ toggle
+        # Ya existe un floating pane desde este panel → toggle
         $null = zellij action toggle-floating-panes 2>&1
     } else {
-        # Primera vez â†’ crear con el CWD actual
+        # Primera vez → crear con el CWD actual
         $null = zellij action new-pane --floating --cwd "$($PWD.Path)" 2>&1
         $script:ZjFloatCreated = $true
     }
 }
 
 function _zfltf {
-    # Forzar creaciÃ³n de floating pane en el CWD actual
+    # Forzar creación de floating pane en el CWD actual
     $null = zellij action new-pane --floating --cwd "$($PWD.Path)" 2>&1
     $script:ZjFloatCreated = $true
 }
 
-# Alt+F â†’ toggle/crear (solo si estamos dentro de Zellij)
+# Alt+F → toggle/crear (solo si estamos dentro de Zellij)
 Set-PSReadLineKeyHandler -Chord "Alt+f" -ScriptBlock {
     if ($env:ZELLIJ_SESSION_NAME) { _zflt }
 }
 
-# Alt+F, f  â†’ fuerza crear nuevo floating pane (secuencia: apretÃ¡ Alt+F, soltÃ¡, y despuÃ©s f)
+# Alt+F, f  → fuerza crear nuevo floating pane (secuencia: apretá Alt+F, soltá, y después f)
 Set-PSReadLineKeyHandler -Chord "Alt+f,f" -ScriptBlock {
     if ($env:ZELLIJ_SESSION_NAME) { _zfltf }
 }
@@ -162,7 +163,6 @@ function cmds {
     Write-Host "  astro <name>   crear proyecto Astro"
     Write-Host "  dev            pnpm run dev"
     Write-Host "  newdb          crear nueva DB (script)"
-    Write-Host "  rmj            script remaju"
     Write-Host "  cf <dir> <files>  crear carpeta + archivos .ts"
     Write-Host ""
     Write-Host "  ==========================================" -ForegroundColor DarkGray
@@ -174,57 +174,50 @@ function cmds {
 }
 function ghelp { cmds }
 
-# â”€â”€â”€ NavegaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ─── Navegación ───────────────────────────────────────────────────────────────
 function d {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects"
+    Set-Location -Path $projects
 }
 
 function w {
     Invoke-Item ./;
 }
 function pr {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\React"
+    Set-Location -Path "$projects\React"
 }
 function fr {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\React\frontEndMentor"
+    Set-Location -Path "$projects\React\frontEndMentor"
 }
 function en {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\en"
+    Set-Location -Path "$projects\en"
 }
 function n {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\Node"
+    Set-Location -Path "$projects\Node"
 }
 function mono {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\MonoRepo"
+    Set-Location -Path "$projects\MonoRepo"
 }
 function as {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\astro"
+    Set-Location -Path "$projects\astro"
 }
 function l {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\Laravel"
+    Set-Location -Path "$projects\Laravel"
 }
 function p {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\PHP"
+    Set-Location -Path "$projects\PHP"
 }
 function ne {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\Nextjs"
+    Set-Location -Path "$projects\Nextjs"
 }
 function js {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\javascript"
+    Set-Location -Path "$projects\javascript"
 }
 function nes {
-    Set-Location -Path "C:\Users\$user\Documents\Proyects\nestjs"
+    Set-Location -Path "$projects\nestjs"
 }
 function power {
-    Set-Location -Path "C:\Users\$user\Documents\PowerShell\";
+    Set-Location -Path $PSScriptRoot;
     code .;
-}
-
-function tg {
-    Start-Process "F:\Juegos1\Suzumiya Haruhi\asd\Telegram\Telegram.exe"
-}
-function telegram {
-    Set-Location -Path "G:\Juegos\Suzumiya Haruhi\asd\Telegram"
 }
 
 
@@ -258,13 +251,6 @@ function dev {
 
 
 function txt{ }
-
-$route = "C:\Users\$user\Documents\Proyects\rmj"
-function cdrm { Set-Location -Path $route }
-function rmj {
-   param([string]$n = "creado")
-   & "$PSScriptRoot\Scripts\rmj.ps1" -n $n
-}
 
 function cf {
     param (
@@ -312,18 +298,17 @@ if (Test-Path($ChocolateyProfile)) {
 }
 
 function post {
-    node "C:\Users\$user\Documents\Proyects\node\post-facebook\index.js"
+    node "$projects\node\post-facebook\index.js"
 }
 
 # Fix: VSCode integrated terminal a veces no carga el User PATH (solo el del sistema).
 # Esto asegura que la carpeta de npm globals (pnpm, etc.) este disponible.
-$npmGlobals = "C:\Users\$user\AppData\Roaming\npm"
+$npmGlobals = Join-Path $env:APPDATA 'npm'
 if ((Test-Path $npmGlobals) -and (($env:PATH -split ';') -notcontains $npmGlobals)) {
     $env:PATH = "$npmGlobals;$env:PATH"
 }
 
-# --- TOOLS BLOCK (zoxide / starship / bat / eza / rg / fd) -------------------
-# Para desinstalar: ejecuta Scripts\uninstall_tools.ps1 y borra este bloque.
+# --- TOOLS BLOCK (zoxide / bat / eza / rg / fd) -------------------------------
 
 # Zoxide (smart cd: usa 'z' en lugar de 'cd')
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
@@ -356,15 +341,9 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
 
 # --- END TOOLS BLOCK ----------------------------------------------------------
 
-# --- VM de prueba del configurador (Hospital Lorena) --------------------------
-# Comandos vm-* : vm-crear, vm-estado, vm-abrir, vm-prender, vm-apagar,
-# vm-guardar, vm-reset, vm-push, vm-destruir.
-#
-# Hyper-V exige ventana de Administrador. Cargar las funciones aca es inofensivo
-# igual: no tocan Hyper-V hasta que las llamas, y sin elevacion avisan y cortan.
-$lorenaVmPath = "$env:USERPROFILE\Documents\Proyects\test-cli\H-lorena-TUI\tools\vm\lorena-vm.ps1"
-if (Test-Path $lorenaVmPath) {
-    $LorenaVMSilencioso = $true   # sin cartel de bienvenida en cada ventana
-    . $lorenaVmPath
-}
-Remove-Variable lorenaVmPath, LorenaVMSilencioso -ErrorAction SilentlyContinue
+# --- Machine specific ---------------------------------------------------------
+# Paths on other drives and helpers for projects that only exist on one machine
+# live in profile.local.ps1, which git ignores. Loaded last so it can override.
+$localProfile = Join-Path $PSScriptRoot 'profile.local.ps1'
+if (Test-Path $localProfile) { . $localProfile }
+Remove-Variable localProfile -ErrorAction SilentlyContinue

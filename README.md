@@ -188,16 +188,16 @@ git rm .\config\foo\bar.toml
 │   ├── alacritty/                   alacritty.toml.template, alacritty-wsl.toml
 │   ├── zellij/                      config.kdl.template, layouts/
 │   ├── claude/                      settings.json, CLAUDE.md, agents/,
-│   │                                commands/, skills/, output-styles/,
+│   │                                commands/, output-styles/,
 │   │                                statusline-command.sh
 │   ├── opencode/                    opencode.json.template, AGENTS.md, agents/,
-│   │                                commands/, plugins/, prompts/, skills/
-│   ├── agents/skills/               shared agent skills
+│   │                                commands/, plugins/, prompts/
+│   ├── skills/                      agent skills, linked into ~/.claude,
+│   │                                ~/.agents and ~/.config/opencode
 │   ├── gga/                         Gentleman Guardian Angel
 │   └── git/ignore                   global gitignore
 ├── packages/                        winget-core.json, winget.json, scoop.json
-├── Scripts/                         standalone helper scripts
-└── Modules/                         vendored PowerShell modules
+└── Scripts/                         standalone helper scripts
 ```
 
 **The profile needs no link.** This repository lives at
@@ -222,6 +222,7 @@ they are rebuilt by the tools that own them.
 | `~/.claude/plugins` | 65 MB | Claude Code plugin install |
 | `~/.config/opencode/node_modules` | 136 MB | `npm install` |
 | `~/.config/zellij/plugins` | 8 MB | downloaded `.wasm`, fetched on demand |
+| `Modules/` (PowerShell Gallery modules) | 1 MB | `install.ps1`, from its `$Modules` list |
 
 Directories that mix configuration with cache are linked **entry by entry**,
 never as a whole. That is why `manifest.psd1` lists `config/claude/settings.json`
@@ -333,8 +334,11 @@ Anything that turns up in a `Links` entry is a bug. Move it to `Rendered`.
 |---------|-------------|
 | `cf <path> <files>` | Create folder + files (`.ts` default) |
 | `newdb` | Spin up Postgres via Docker |
-| `rmj [name]` | Parse judicial HTML to searchable TXT + HTML |
 | `cmds` | Show all profile commands (`ghelp` is an alias) |
+
+Machine specific commands (other drives, local-only projects) go in
+`profile.local.ps1` next to the profile. Git ignores it and the profile
+dot-sources it last when it exists.
 
 ### Zellij (inside Zellij only)
 

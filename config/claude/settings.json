@@ -29,7 +29,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
   "skillOverrides": {
     "chained-pr": "off",
     "comment-writer": "off",
@@ -74,15 +73,7 @@
   "outputStyle": "Gentleman",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
-  "mcpServers": {
-    "engram": {
-      "args": [
-        "mcp",
-        "--tools=agent"
-      ],
-      "command": "engram"
-    }
-  },
+  "switchModelsOnFlag": false,
   "autoMode": {
     "environment": [
       "### Org-wide",
@@ -111,5 +102,15 @@
       "**Org-specific CLIs**: None configured",
       "routine actions under this repo's working directory (C:\\Users\\Paul Cruz\\Documents\\Proyects\\astro\\tesis-landing) are in scope; academic repository hosts contacted (repositorio.upn.edu.pe, repositorio.ucv.edu.pe, repositorio.continental.edu.pe, repositorio.unjfsc.edu.pe, hdl.handle.net, repositorio.uancv.edu.pe, repositorio.ulima.edu.pe, repositorio.unfv.edu.pe, repositorio.upao.edu.pe, repositorio.urp.edu.pe, repositorio.usat.edu.pe, tesis.pucp.edu.pe) are read-only research lookups, not a trust boundary for uploads"
     ]
-  }
+  },
+  "mcpServers": {
+    "engram": {
+      "args": [
+        "mcp",
+        "--tools=agent"
+      ],
+      "command": "engram"
+    }
+  },
+  "model": "opus"
 }

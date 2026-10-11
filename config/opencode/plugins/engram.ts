@@ -15,12 +15,15 @@
  */
 
 import type { Plugin } from "@opencode-ai/plugin"
+import { homedir } from "node:os"
+import { join } from "node:path"
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 const ENGRAM_PORT = parseInt(process.env.ENGRAM_PORT ?? "7437")
 const ENGRAM_URL = `http://127.0.0.1:${ENGRAM_PORT}`
-const ENGRAM_BIN = process.env.ENGRAM_BIN ?? Bun.which("engram") ?? "C:\\Users\\Paul Cruz\\.local\\bin\\engram.exe"
+// Last resort: ~/bin, where install.ps1 puts the binary.
+const ENGRAM_BIN = process.env.ENGRAM_BIN ?? Bun.which("engram") ?? join(homedir(), "bin", "engram.exe")
 
 // Engram's own MCP tools — don't count these as "tool calls" for session stats
 const ENGRAM_TOOLS = new Set([

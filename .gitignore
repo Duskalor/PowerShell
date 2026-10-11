@@ -29,6 +29,7 @@ desktop.ini
 *_secret*
 
 # Machine specific overrides, seeded from the .example files
+profile.local.ps1
 settings.local.json
 *.local.json
 !*.local.json.example
@@ -41,8 +42,16 @@ config/opencode/node_modules/
 config/opencode/bun.lock
 config/opencode/package-lock.json
 
+# PowerShell modules land here because this repository is the profile
+# directory. install.ps1 restores them from the PowerShell Gallery.
+Modules/
+
 # Agent tooling local cache
 .atl/
+
+# Skills the Claude desktop app syncs into ~/.claude/skills, which is linked
+# to config/skills. They are downloaded by the app, not configuration.
+config/skills/synced/
 
 # Compiled Python bytecode from bundled skill scripts
 __pycache__/

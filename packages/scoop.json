@@ -15,20 +15,6 @@
     ],
     "apps": [
         {
-            "Name": "jq",
-            "Version": "1.8.1",
-            "Info": "",
-            "Updated": "2026-04-03T19:25:22.8820284-05:00",
-            "Source": "main"
-        },
-        {
-            "Name": "opencode",
-            "Version": "1.2.27",
-            "Info": "",
-            "Updated": "2026-03-17T11:49:39.0424139-05:00",
-            "Source": "C:\\Users\\Paul Cruz\\scoop\\buckets\\main\\bucket\\opencode.json"
-        },
-        {
             "Name": "railway",
             "Version": "3.22.2",
             "Info": "",

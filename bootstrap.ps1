@@ -200,7 +200,7 @@ foreach ($template in $manifest.Templates) {
     }
     New-DotfilesParent -Path $target
     Copy-Item -LiteralPath $example -Destination $target
-    Write-Host "  seeded   $(Split-Path -Leaf $target) — fill in your own values" -ForegroundColor Green
+    Write-Host "  seeded   $(Split-Path -Leaf $target) - fill in your own values" -ForegroundColor Green
 }
 
 Write-Host ''

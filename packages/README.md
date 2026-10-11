@@ -4,7 +4,7 @@ Configuration comes back from this repository. Applications come back from here.
 
 | File | What it holds | Who reads it |
 |------|---------------|--------------|
-| `winget-core.json` | The toolchain the profile actually calls: git, gh, pwsh, alacritty, zellij, rg, fd, bat, eza, fzf, zoxide, lazygit, node, code, claude, msys2 | `install.ps1` by default |
+| `winget-core.json` | The toolchain the profile and the agents actually call: git, gh, pwsh, alacritty, zellij, rg, fd, bat, eza, fzf, zoxide, lazygit, node, code, claude desktop and CLI, opencode, python, pnpm, bun, jq | `install.ps1` by default |
 | `winget.json` | Full snapshot of this machine — games, office suites, redistributables and all | `install.ps1 -AllPackages` |
 | `scoop.json` | The few tools installed through scoop | by hand |
 
