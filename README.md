@@ -262,6 +262,84 @@ Anything that turns up in a `Links` entry is a bug. Move it to `Rendered`.
 
 ---
 
+## Troubleshooting
+
+Symptoms seen on a real machine, with what actually caused them. Each one took
+longer to diagnose than to fix, which is the only reason they are written down.
+
+### `Terminal-Icons did not load`
+
+The module lives in `Modules/`, which `install.ps1` generates from its
+`$Modules` list and git ignores. A clone alone does not have it.
+
+```powershell
+.\install.ps1 -DryRun   # see the plan
+.\install.ps1           # installs Gallery modules, then links
+```
+
+The profile wraps the import in a `try`, so a machine without the module prints
+one line instead of a red error on every prompt.
+
+### `Import-Clixml: Root element is missing.`
+
+Terminal-Icons writes its theme store to
+`%APPDATA%\powershell\Community\Terminal-Icons` the first time it is imported,
+and reads those same files during import. A shell that starts while they are
+still being written reads empty XML.
+
+It happens once, right after installing the module, and resolves itself. The
+same `try` around the import now swallows it. If it keeps happening, check for
+a zero-byte `*_icon.xml` or `*_color.xml` in that directory.
+
+### The Claude Code status line is blank
+
+`statusline-command.sh` needs a working Python. Windows installs **app
+execution alias** stubs at `%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe`
+and `python3.exe`; they resolve on `PATH` but exit 49 with a Microsoft Store
+prompt instead of running anything.
+
+`command -v` cannot tell the difference, so the script now runs `-c "pass"` on
+each candidate before accepting it. **On Windows, never detect an interpreter by
+existence alone.**
+
+### Copying out of Zellij produces garbled characters
+
+`clip.exe` decodes stdin using the console's **active code page**, not UTF-8.
+With code page 850 every multi-byte sequence comes out of the clipboard as
+several unrelated characters: `á` as two, box-drawing as three, Nerd Font
+glyphs as three or four.
+
+`config.kdl` therefore uses `copy_command "win32yank.exe -i --crlf"`. Unlike
+`xclip`, `wl-copy` and `pbcopy`, `clip` is the one tool in that family that is
+code-page dependent.
+
+Check the code page with `chcp` if any Windows tool mangles text this way.
+
+### Zellij logs `Failed to load plugin` on every session start
+
+Upstream Gentleman.Dots puts `"zellij:link"` in `load_plugins`. That built-in
+does not exist in 0.43.1-win32.5, so the entry is commented out here.
+
+`zellij setup --check` validates `config.kdl` only — never the layouts, and
+never whether a plugin actually resolves. The log is at
+`%LOCALAPPDATA%\Temp\zellij\zellij-log\zellij.log`.
+
+To decide whether a logged error is new, compare its timestamp against the
+moment the config changed. That single check is usually faster than reading the
+config.
+
+### `bootstrap.ps1` says `replaced config/zellij/config.kdl.template`
+
+Expected. `config.kdl` is rendered, not linked, so the bootstrap backs up what
+is on the machine and writes it again from the template. Content survives; the
+file comes back with LF line endings if git normalized the template.
+
+The risk is the other direction: **edits to `config.kdl` are invisible to the
+repository until `sync.ps1` runs.** Run it after changing that file, or the next
+bootstrap renders the older template over your work.
+
+---
+
 ## Commands Reference
 
 ### Tools (Rust-based)
