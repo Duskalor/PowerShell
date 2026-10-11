@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
 input=$(cat)
 
-# Detect python interpreter
+# Detect python interpreter.
+# Existence is not enough: Windows app execution aliases install python.exe and
+# python3.exe stubs that resolve on PATH but exit non-zero with a Store prompt.
+# Each candidate must actually run code before it is accepted.
 PYTHON_EXE=""
 PYTHON_PRE=""
-if command -v python3 >/dev/null 2>&1; then
-  PYTHON_EXE="python3"
-elif command -v python >/dev/null 2>&1; then
-  PYTHON_EXE="python"
-elif command -v py >/dev/null 2>&1; then
-  PYTHON_EXE="py"
-  PYTHON_PRE="-3"
-else
+
+try_python() {
+  candidate_exe="$1"
+  candidate_pre="$2"
+  if [ -n "$candidate_pre" ]; then
+    "$candidate_exe" "$candidate_pre" -c "pass" >/dev/null 2>&1 || return 1
+  else
+    "$candidate_exe" -c "pass" >/dev/null 2>&1 || return 1
+  fi
+  PYTHON_EXE="$candidate_exe"
+  PYTHON_PRE="$candidate_pre"
+  return 0
+}
+
+if ! try_python python3 "" && ! try_python python "" && ! try_python py "-3"; then
   # Per-user python.org installs that never made it onto PATH; newest wins.
   for candidate in "$HOME"/AppData/Local/Programs/Python/Python3*/python.exe; do
-    [ -x "$candidate" ] && PYTHON_EXE="$candidate"
+    [ -x "$candidate" ] && try_python "$candidate" ""
   done
 fi
 
@@ -24,9 +34,9 @@ run_py() {
     return 1
   fi
   if [ -n "$PYTHON_PRE" ]; then
-    "$PYTHON_EXE" "$PYTHON_PRE" "$@"
+    "$PYTHON_EXE" "$PYTHON_PRE" "$@" 2>/dev/null
   else
-    "$PYTHON_EXE" "$@"
+    "$PYTHON_EXE" "$@" 2>/dev/null
   fi
 }
 
