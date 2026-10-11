@@ -348,6 +348,14 @@ keybinds clear-defaults=true {
         // so dropping them costs nothing and keeps the row consistent.
         bind "Ctrl l" { GoToPreviousTab; }
         bind "Ctrl p" { GoToNextTab; }
+        // Read back output without entering scroll mode. Half a page per press:
+        // enough to move, little enough to keep the surrounding lines in view.
+        // PSReadLine in Windows edit mode binds neither key, and on Windows EOF
+        // is Ctrl+Z, not Ctrl+D, so nothing is taken away from pwsh. Caveat: a
+        // Zellij binding is seen before the pane's program, so inside WSL or an
+        // ssh session Ctrl+D no longer reaches the remote shell as EOF.
+        bind "Ctrl d" { HalfPageScrollUp; }
+        bind "Ctrl f" { HalfPageScrollDown; }
         bind "Alt left" { MoveFocusOrTab "left"; }
         bind "Alt down" { MoveFocus "down"; }
         bind "Alt up" { MoveFocus "up"; }
