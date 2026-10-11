@@ -1,13 +1,13 @@
 layout {
     tab name="claude" focus=true {
-        pane split_direction="horizontal" {
+        pane split_direction="vertical" {
             pane size="50%" focus=true
             pane size="50%"
         }
     }
 
     tab name="opencode" {
-        pane split_direction="horizontal" {
+        pane split_direction="vertical" {
             pane size="50%" focus=true
             pane size="50%"
         }
