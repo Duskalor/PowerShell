@@ -554,6 +554,27 @@ class DocxRenderer:
                 run.italic = True
         return p
 
+    def add_code(self, code_lines):
+        """A fenced code block: monospace, shaded, line breaks kept verbatim."""
+        p = self.fmt(self.doc.add_paragraph(), spacing=1.0, after=8)
+        p.paragraph_format.left_indent = Cm(0.3)
+        pPr = p._p.get_or_add_pPr()
+        shd = OxmlElement("w:shd")
+        shd.set(qn("w:val"), "clear")
+        shd.set(qn("w:color"), "auto")
+        shd.set(qn("w:fill"), "F2F2F2")
+        pPr.append(shd)
+        for n, text in enumerate(code_lines):
+            run = p.add_run(text)
+            run.font.name = "Consolas"
+            run.font.size = Pt(9)
+            rfonts = run._element.get_or_add_rPr().get_or_add_rFonts()
+            for attr in ("w:ascii", "w:hAnsi", "w:eastAsia", "w:cs"):
+                rfonts.set(qn(attr), "Consolas")
+            if n < len(code_lines) - 1:
+                run.add_break()
+        return p
+
     def add_heading(self, text, level):
         cfg = self.p["headings"]
         p = self.fmt(self.doc.add_paragraph(style=f"Heading {level}"),
@@ -803,6 +824,18 @@ def convert(src: Path, dst: Path, profile: dict) -> None:
     i = 0
     while i < len(lines):
         line = lines[i].rstrip()
+
+        # A fenced code block, kept verbatim (blank lines included).
+        if line.lstrip().startswith("```"):
+            i += 1
+            block = []
+            while i < len(lines) and not lines[i].lstrip().startswith("```"):
+                block.append(lines[i].rstrip("\n").rstrip())
+                i += 1
+            i += 1
+            if block:
+                r.add_code(block)
+            continue
 
         if not line or RULE.match(line):
             i += 1

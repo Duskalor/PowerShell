@@ -51,6 +51,7 @@ Documents containing SVG also need Chrome or Edge installed - see *Figures*.
 | `<svg …>…</svg>` | Inline diagram, rasterized and embedded - see *Figures* |
 | `---` | Ignored - safe to use as a section separator |
 | `` `code` `` | Inline run in Consolas, same size, backticks removed |
+| fenced ``` block | Shaded paragraph, Consolas 9 pt, line breaks kept verbatim (language tag ignored) |
 
 A leading `---` YAML frontmatter block is dropped, so Markdown written for a
 static site renders without its `title:` keys becoming the first paragraphs. A
@@ -64,7 +65,7 @@ on every newline - a quote soft-wrapped across five source lines is one
 paragraph, not five. Nesting is read from leading whitespace, two spaces per
 level by default (`lists.spaces_per_level`).
 
-Anything outside this table (code fences, inline links) renders as plain
+Anything outside this table (inline links, for example) renders as plain
 text. If one of those is needed, extend
 `scripts/md2docx.py` rather than working around it in the Markdown - a workaround
 in the content file defeats the separation the tool exists for.
