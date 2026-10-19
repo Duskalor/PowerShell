@@ -44,6 +44,9 @@
 .PARAMETER SkipFont
     Do not install IosevkaTerm Nerd Font.
 
+.PARAMETER SkipExtensions
+    Do not install the VS Code extensions from packages/vscode-extensions.txt.
+
 .PARAMETER SkipEngram
     Do not install the engram binary.
 
@@ -65,6 +68,7 @@ param(
     [switch]$AllPackages,
     [switch]$SkipModules,
     [switch]$SkipFont,
+    [switch]$SkipExtensions,
     [switch]$SkipEngram,
     [switch]$DryRun
 )
@@ -460,8 +464,67 @@ if ($SkipFont) {
     }
 }
 
-# --- 6. Engram ----------------------------------------------------------------
-Write-Head '6. Engram'
+# --- 6. VS Code extensions ----------------------------------------------------
+Write-Head '6. VS Code extensions'
+
+<#
+    87 identifiers, installed one call at a time because that is the only
+    interface `code` offers - there is no import command and no manifest.
+
+    This runs after step 3, which is what installs `code` itself, and it is
+    skipped rather than failed when `code` is missing: a machine that does not
+    want VS Code should still finish the rest of the install.
+
+    Each call is allowed to fail on its own. An extension that was renamed or
+    pulled from the marketplace is worth one warning line, not an aborted run,
+    so the loop counts failures and reports them together at the end.
+#>
+$extFile = Join-Path $repo (Join-Path 'packages' 'vscode-extensions.txt')
+
+if ($SkipExtensions) {
+    Write-Skip 'VS Code extensions (-SkipExtensions)'
+} elseif (-not (Test-Path -LiteralPath $extFile)) {
+    Write-Warn 'vscode-extensions.txt not found, nothing to install'
+} elseif (-not (Test-Tool 'code')) {
+    Write-Skip 'VS Code extensions (code is not on PATH)'
+} else {
+    $wanted = @(Get-Content -LiteralPath $extFile | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+
+    if ($DryRun) {
+        Write-Plan "install $($wanted.Count) VS Code extensions"
+    } else {
+        # One listing up front, so already-present extensions cost nothing
+        # instead of a process launch each. Marketplace identifiers are
+        # case insensitive, which is why both sides are lowercased.
+        $ErrorActionPreference = 'Continue'
+        $have = @(& code --list-extensions 2>$null | ForEach-Object { $_.Trim().ToLowerInvariant() })
+        $ErrorActionPreference = 'Stop'
+
+        $missing = @($wanted | Where-Object { $have -notcontains $_.ToLowerInvariant() })
+
+        if ($missing.Count -eq 0) {
+            Write-Skip "VS Code extensions ($($wanted.Count) already installed)"
+        } else {
+            Write-Host "  ...      installing $($missing.Count) of $($wanted.Count) extensions" -ForegroundColor DarkGray
+            $bad = @()
+            foreach ($id in $missing) {
+                $ErrorActionPreference = 'Continue'
+                & code --install-extension $id --force *> $null
+                $code = $LASTEXITCODE
+                $ErrorActionPreference = 'Stop'
+                if ($code -ne 0) { $bad += $id }
+            }
+            if ($bad.Count -eq 0) {
+                Write-Ok "VS Code extensions ($($missing.Count) installed)"
+            } else {
+                Write-Warn "$($bad.Count) of $($missing.Count) extensions failed: $($bad -join ', ')"
+            }
+        }
+    }
+}
+
+# --- 7. Engram ----------------------------------------------------------------
+Write-Head '7. Engram'
 
 $binDir     = Join-Path $HOME 'bin'
 $engramPath = Join-Path $binDir 'engram.exe'
@@ -512,8 +575,8 @@ if ($DryRun) {
     }
 }
 
-# --- 7. Link the configuration ------------------------------------------------
-Write-Head '7. Link the configuration'
+# --- 8. Link the configuration ------------------------------------------------
+Write-Head '8. Link the configuration'
 
 $bootstrap = Join-Path $repo 'bootstrap.ps1'
 # An array splats as native arguments for pwsh.exe; a script needs a hashtable.

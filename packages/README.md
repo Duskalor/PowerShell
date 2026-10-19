@@ -7,6 +7,7 @@ Configuration comes back from this repository. Applications come back from here.
 | `winget-core.json` | The toolchain the profile and the agents actually call: git, gh, pwsh, alacritty, zellij, rg, fd, bat, eza, fzf, zoxide, lazygit, node, code, claude desktop and CLI, opencode, python, pnpm, bun, jq | `install.ps1` by default |
 | `winget.json` | Full snapshot of this machine — games, office suites, redistributables and all | `install.ps1 -AllPackages` |
 | `scoop.json` | The few tools installed through scoop | by hand |
+| `vscode-extensions.txt` | The 87 VS Code extensions, one identifier per line | `install.ps1` |
 
 ## Why two winget files
 
@@ -31,13 +32,28 @@ By hand, without the installer:
 ```powershell
 winget import -i packages\winget-core.json --accept-package-agreements --accept-source-agreements --ignore-unavailable
 scoop import packages\scoop.json
+Get-Content packages\vscode-extensions.txt | ForEach-Object { code --install-extension $_ }
 ```
+
+## Why the extensions are a flat list
+
+VS Code has no import command and no manifest format: `--install-extension`
+takes one identifier at a time, and the only thing it needs is the identifier.
+A plain text file is therefore the whole artifact, and it stays diffable - a
+commit shows exactly which extension was added or dropped, which a JSON export
+of the same data would bury in punctuation.
+
+The list carries no versions on purpose. Pinning an extension to the version
+that happened to be installed would hand a new machine an old build of
+something the marketplace keeps current anyway, and the loop above would fail
+outright once that version is delisted.
 
 ## Re-export after installing something
 
 ```powershell
 winget export -o packages\winget.json
 scoop export | Out-File -Encoding utf8 packages\scoop.json
+code --list-extensions | Sort-Object | Set-Content packages\vscode-extensions.txt
 git add packages/
 git commit -m "chore: update package lists"
 ```
