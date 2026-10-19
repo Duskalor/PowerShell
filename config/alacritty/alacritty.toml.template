@@ -109,4 +109,4 @@ TERM = "xterm-256color"
 COLORTERM = "truecolor"
 
 [terminal.shell]
-program = "{LOCALAPPDATA\\}\\Microsoft\\WinGet\\Links\\zellij.exe"
+program = "{LOCALAPPDATA\\}\\Zellij\\zellij.exe"
