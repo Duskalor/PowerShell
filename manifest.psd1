@@ -5,14 +5,18 @@
     repo means adding one row here; nothing else changes.
 
     Repo   : path relative to the repository root.
-    Target : destination on the machine. Tokens {HOME} and {APPDATA} are
-             expanded at runtime so the manifest stays machine independent.
+    Target : destination on the machine. Tokens {HOME}, {APPDATA} and
+             {LOCALAPPDATA} are expanded at runtime so the manifest stays
+             machine independent.
     Type    : File or Directory. Determines the kind of symbolic link created.
 
     Never link a whole directory that also holds caches or downloaded
     artifacts. ~/.claude carries ~350 MB of session history and plugins,
-    ~/.config/opencode carries node_modules, and ~/.config/zellij carries
-    downloaded .wasm plugins. Those directories are linked entry by entry.
+    ~/.config/opencode carries node_modules, ~/.config/zellij carries
+    downloaded .wasm plugins, %LOCALAPPDATA%\Microsoft\PowerToys mixes its
+    settings in with logs and search history, and %APPDATA%\Code\User carries
+    505 MB of workspaceStorage and History. Those directories are linked entry
+    by entry.
 
     Those .wasm plugins are not committed, but they are not left to chance
     either: see Downloads at the bottom, which fetches them from a pinned
@@ -23,6 +27,10 @@
         # --- Home dotfiles ---
         @{ Repo = 'home/.gitconfig';                    Target = '{HOME}/.gitconfig';                         Type = 'File' }
         @{ Repo = 'home/.wezterm.lua';                  Target = '{HOME}/.wezterm.lua';                       Type = 'File' }
+        # The user-wide MCP server list any agent CLI reads from the home
+        # directory. One entry, shadcn, launched through npx - no secrets, so
+        # unlike VS Code's own mcp.json this one is a plain link.
+        @{ Repo = 'home/.mcp.json';                     Target = '{HOME}/.mcp.json';                          Type = 'File' }
 
         # --- Alacritty (alacritty.toml is rendered, see Rendered below) ---
         @{ Repo = 'config/alacritty/alacritty-wsl.toml';Target = '{APPDATA}/alacritty/alacritty-wsl.toml';    Type = 'File' }
@@ -61,6 +69,146 @@
         # --- Gentleman Guardian Angel ---
         @{ Repo = 'config/gga/AGENTS.md';               Target = '{HOME}/.config/gga/AGENTS.md';              Type = 'File' }
         @{ Repo = 'config/gga/config';                  Target = '{HOME}/.config/gga/config';                 Type = 'File' }
+
+        <#
+            --- Neovim (LazyVim) ---
+
+            The only whole-directory link in this file, and it is safe for one
+            reason: neovim keeps its configuration and its state in two
+            separate directories. %LOCALAPPDATA%\nvim is the config, 30 KB of
+            lua. %LOCALAPPDATA%\nvim-data is the state - 127 MB of cloned
+            plugin repositories, compiled treesitter parsers and shada - and
+            it is deliberately absent from this file. Nothing has to be
+            rebuilt by hand either: lazy.nvim restores every plugin at the
+            exact commit lazy-lock.json names.
+
+            lazy.nvim writes lazy-lock.json and lazyvim.json back into the
+            config directory whenever plugins are updated. Through this link
+            those writes land in the repository, which is the point: a lockfile
+            that drifts out of the repository is a lockfile that pins nothing.
+        #>
+        @{ Repo = 'config/nvim';                        Target = '{LOCALAPPDATA}/nvim';                       Type = 'Directory' }
+
+        <#
+            --- Windows Terminal ---
+
+            8wekyb3d8bbwe is not this machine's identifier. It is Microsoft's
+            publisher hash, identical in every MSIX package they sign, so the
+            path needs no token beyond {LOCALAPPDATA}. It does assume the Store
+            build; an unpackaged or portable Terminal reads its settings from
+            somewhere else entirely and this row would silently not apply.
+
+            LocalState does not exist until Terminal has been started once.
+            bootstrap.ps1 creates the parent itself, and Terminal reads the
+            file on its next start, so the order of the two does not matter.
+        #>
+        @{ Repo = 'config/windows-terminal/settings.json'; Target = '{LOCALAPPDATA}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json'; Type = 'File' }
+
+        <#
+            --- VS Code (entry by entry: 505 MB of state sits in this folder) ---
+
+            %APPDATA%\Code\User holds four configuration files next to
+            workspaceStorage and History, which together are 505 MB of
+            per-workspace state, and globalStorage and sync, which hold
+            account tokens. Only the four are named here.
+
+            Left out on purpose:
+              profiles/   509 KB, and all of it is one state.vscdb SQLite
+                          database plus an empty chatLanguageModels.json. There
+                          is no configuration in it to restore.
+              tasks.json  the file is literally "{}". Linking it would commit
+                          an empty object and imply a setting that is not set.
+              mcp.json    carries a database password, so it is seeded from an
+                          example instead. See Templates at the bottom.
+
+            The extensions are not configuration and are not linked. They are
+            listed in packages/vscode-extensions.txt, next to the winget and
+            scoop lists, and restored the same way.
+        #>
+        @{ Repo = 'config/vscode/settings.json';        Target = '{APPDATA}/Code/User/settings.json';         Type = 'File' }
+        @{ Repo = 'config/vscode/keybindings.json';     Target = '{APPDATA}/Code/User/keybindings.json';      Type = 'File' }
+        @{ Repo = 'config/vscode/snippets';             Target = '{APPDATA}/Code/User/snippets';              Type = 'Directory' }
+        @{ Repo = 'config/vscode/prompts';              Target = '{APPDATA}/Code/User/prompts';               Type = 'Directory' }
+
+        <#
+            --- PowerToys (entry by entry, and the first row is the important one) ---
+
+            Keyboard Manager's default.json is 436 bytes and it is the reason
+            this whole section exists. It holds four shortcut-to-text remaps
+            that work around the Latin American keyboard layout:
+
+                Alt+Shift+1  ->  /        Alt+Shift+3  ->  \
+                Alt+Shift+2  ->  \        Ctrl+Shift+Z ->  >
+
+            Without it, typing a path on the new machine is broken from the
+            first minute. Nothing else in this repository can be used to
+            reconstruct it, because the file stores virtual key codes
+            ("164;160;49"), not key names.
+
+            Only the nine enabled modules are listed. The rest of
+            %LOCALAPPDATA%\Microsoft\PowerToys is state, not configuration:
+            RunnerLogs and UpdateLogs, the *-mru.json and last-run-data files,
+            PowerToys Run's QueryHistory.json, UserSelectedRecord.json and
+            ImageCache.json, ColorPicker's colorHistory.json, and
+            FancyZones\applied-layouts.json for a module that is switched off.
+
+            Two subtleties worth knowing before editing this block:
+
+            1. Every PowerToys settings file under PowerToys Run\Settings has a
+               <name>_version.txt sibling holding the format version. PowerToys
+               compares the two and runs a migration when they disagree, so the
+               stamp is linked together with the file it describes. Linking one
+               without the other hands a fresh install a file it believes needs
+               upgrading.
+
+            2. PowerToys saves by writing a temporary file and renaming it over
+               the original, which replaces a symbolic link with a regular
+               file - the same pattern this repository already documents for
+               Claude Code. So a settings change made in the PowerToys UI does
+               not reach the repository on its own: run sync.ps1, which copies
+               the machine's version back in and relinks. PowerToys also only
+               reads these files at startup, so it has to be restarted after a
+               bootstrap, not just after an edit.
+
+            PowerToys Run\Settings\Plugins\Microsoft.Plugin.Program is left out
+            although it is an enabled plugin. Every value in it is the default,
+            and it carries a LastIndexTime that PowerToys rewrites on every
+            index pass - linking it would dirty the repository daily and
+            restore nothing.
+        #>
+        @{ Repo = 'config/powertoys/Keyboard Manager/default.json';        Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Keyboard Manager/default.json';        Type = 'File' }
+        @{ Repo = 'config/powertoys/Keyboard Manager/settings.json';       Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Keyboard Manager/settings.json';       Type = 'File' }
+        @{ Repo = 'config/powertoys/Keyboard Manager/editorSettings.json'; Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Keyboard Manager/editorSettings.json'; Type = 'File' }
+
+        # Which modules are on. A fresh install enables its own defaults, so
+        # without this row the nine below come back alongside twenty-four that
+        # were deliberately turned off.
+        @{ Repo = 'config/powertoys/settings.json';                        Target = '{LOCALAPPDATA}/Microsoft/PowerToys/settings.json';                        Type = 'File' }
+
+        @{ Repo = 'config/powertoys/Awake/settings.json';                  Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Awake/settings.json';                  Type = 'File' }
+        @{ Repo = 'config/powertoys/ColorPicker/settings.json';            Target = '{LOCALAPPDATA}/Microsoft/PowerToys/ColorPicker/settings.json';            Type = 'File' }
+        @{ Repo = 'config/powertoys/File Explorer/settings.json';          Target = '{LOCALAPPDATA}/Microsoft/PowerToys/File Explorer/settings.json';          Type = 'File' }
+        @{ Repo = 'config/powertoys/Image Resizer/settings.json';          Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Image Resizer/settings.json';          Type = 'File' }
+        @{ Repo = 'config/powertoys/Peek/settings.json';                   Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Peek/settings.json';                   Type = 'File' }
+        @{ Repo = 'config/powertoys/Peek/preview-settings.json';           Target = '{LOCALAPPDATA}/Microsoft/PowerToys/Peek/preview-settings.json';           Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerRename/power-rename-settings.json'; Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerRename/power-rename-settings.json'; Type = 'File' }
+        @{ Repo = 'config/powertoys/TextExtractor/settings.json';          Target = '{LOCALAPPDATA}/Microsoft/PowerToys/TextExtractor/settings.json';          Type = 'File' }
+
+        # PowerToys Run. settings.json is the module's own 21 KB file (plugin
+        # order, action keywords); Settings/ is the launcher's, including the
+        # Ctrl+Shift+Space hotkey that replaced the stock Alt+Space.
+        @{ Repo = 'config/powertoys/PowerToys Run/settings.json';                          Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/settings.json';                          Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/PowerToysRunSettings.json';     Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/PowerToysRunSettings.json';     Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/PowerToysRunSettings_version.txt'; Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/PowerToysRunSettings_version.txt'; Type = 'File' }
+
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Folder/FolderSettings.json';          Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Folder/FolderSettings.json';          Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Folder/FolderSettings_version.txt';   Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Folder/FolderSettings_version.txt';   Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Indexer/IndexerSettings.json';        Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Indexer/IndexerSettings.json';        Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Indexer/IndexerSettings_version.txt'; Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Indexer/IndexerSettings_version.txt'; Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Shell/ShellPluginSettings.json';      Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Shell/ShellPluginSettings.json';      Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Shell/ShellPluginSettings_version.txt'; Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Shell/ShellPluginSettings_version.txt'; Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Uri/UriSettings.json';                Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Uri/UriSettings.json';                Type = 'File' }
+        @{ Repo = 'config/powertoys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Uri/UriSettings_version.txt';         Target = '{LOCALAPPDATA}/Microsoft/PowerToys/PowerToys Run/Settings/Plugins/Microsoft.Plugin.Uri/UriSettings_version.txt';         Type = 'File' }
     )
 
     <#
@@ -97,6 +245,24 @@
     # are never committed.
     Templates = @(
         @{ Example = 'config/claude/settings.local.json.example'; Target = '{HOME}/.claude/settings.local.json' }
+
+        <#
+            VS Code's MCP server list. A link, not a template, would be the
+            obvious choice - it is four servers and no absolute paths. It is
+            here instead because one of those servers carries a MongoDB Atlas
+            connection string with the password inline, and this repository is
+            public. There is no way to version that file and keep the secret.
+
+            So the example holds the shape with the credentials replaced by
+            placeholders, and the real file is written once on a new machine
+            and never touched again. Fill in the connection string by hand.
+
+            The example also corrects one value the live file carries: engram
+            was pinned to /opt/homebrew/bin/engram, a macOS path that resolves
+            to nothing on Windows. The example calls it by name, which
+            install.ps1 puts on PATH in ~/bin.
+        #>
+        @{ Example = 'config/vscode/mcp.json.example';           Target = '{APPDATA}/Code/User/mcp.json' }
     )
 
     <#
