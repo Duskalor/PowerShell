@@ -193,13 +193,18 @@ function Copy-DotfilesContent {
 
     Order matters both ways. %LOCALAPPDATA% and %APPDATA% both begin with the
     home directory, so replacing HOME first would leave "{HOME}\AppData\Local"
-    behind and no LOCALAPPDATA token would ever match again.
+    behind and no LOCALAPPDATA token would ever match again. The same trap
+    holds for the two Program Files directories: "C:\Program Files" is a
+    prefix of "C:\Program Files (x86)", so the x86 one has to come first or
+    the inverse direction would write "{PROGRAMFILES} (x86)".
 #>
 function Get-DotfilesTokenMap {
     $map = [ordered]@{}
-    if ($env:LOCALAPPDATA) { $map['LOCALAPPDATA'] = $env:LOCALAPPDATA.TrimEnd('\', '/') }
-    if ($env:APPDATA)      { $map['APPDATA']      = $env:APPDATA.TrimEnd('\', '/') }
-    if ($HOME)             { $map['HOME']         = $HOME.TrimEnd('\', '/') }
+    if ($env:LOCALAPPDATA)        { $map['LOCALAPPDATA']    = $env:LOCALAPPDATA.TrimEnd('\', '/') }
+    if ($env:APPDATA)             { $map['APPDATA']         = $env:APPDATA.TrimEnd('\', '/') }
+    if (${env:ProgramFiles(x86)}) { $map['PROGRAMFILESX86'] = ${env:ProgramFiles(x86)}.TrimEnd('\', '/') }
+    if ($env:ProgramFiles)        { $map['PROGRAMFILES']    = $env:ProgramFiles.TrimEnd('\', '/') }
+    if ($HOME)                    { $map['HOME']            = $HOME.TrimEnd('\', '/') }
     $map
 }
 
