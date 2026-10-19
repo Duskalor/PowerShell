@@ -1,0 +1,251 @@
+{
+  // Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and
+  // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope
+  // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is
+  // used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+  // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders.
+  // Placeholders with the same ids are connected.
+  // Example:
+  // "Print to console": {
+  // 	"scope": "javascript,typescript",
+  // 	"prefix": "log",
+  // 	"body": [
+  // 		"console.log('$1')",
+  // 		"$2"
+  // 	],
+  // 	"description": "Log output to console"
+  // }
+
+  "crear arrow f": {
+    "prefix": "sd",
+    "body": ["(${1:}) => {",
+      "${2:}",
+    "}"]
+  },
+  "crear arrow async f": {
+    "prefix": "sda",
+    "body": ["async (${1:}) => {",
+      "${2:}",
+    "}"]
+  },
+  "mayor que": {
+    "prefix": "ñ",
+    "body": [">"]
+  },
+  "menor que": {
+    "prefix": "ñq",
+    "body": ["<"]
+  },
+
+
+  "crar un slice de Redux": {
+    "prefix": "rdx",
+    "body": [
+      " import {createSlice} from '@reduxjs/toolkit' ",
+      "",
+      "export const ${1:templace}Slice = createSlice({",
+      "name : '${1:templace}',",
+      "initialState: {",
+      " counter: 10",
+      "},",
+      "reducers: {",
+      " increment: (state, /* action */ ) => {",
+      "",
+      "state.counter += 1",
+      " },",
+      "}",
+      "})",
+
+      "export const { increment } = ${1:templace}Slice.actions;"
+    ]
+  },
+  "crear modelMongo": {
+    "prefix": "mdl",
+    "body": [
+      "import { Schema, model, Types } from 'mongoose'",
+      "",
+      "const ${1:templace}Schema = new Schema(",
+      "{},",
+      "{",
+      " timestamps: true,",
+      "versionKey: false,",
+      "}",
+      ")",
+
+      "export const ${1:templace}Model = model('${1:templace}', ${1:templace}Schema);"
+    ]
+  },
+  "crear routerDinamicoNode": {
+    "prefix": "rtr",
+    "body": [
+      "import { Router } from 'express'",
+      "import { readdirSync } from 'fs'; ",
+
+      "const router = Router()",
+      "const PATH_DIR = `${${__dirname}}`",
+      "",
+      "const cleanName = (name: string) => {",
+      " return name.split('.').shift()",
+      "}",
+      "",
+      "readdirSync(PATH_DIR).filter((response) => {",
+      "const name = cleanName(response);",
+      "if (name !== 'index') {",
+      " import(`./${${name}}`).then((module) => {",
+      " router.use(`/${${name}}`, module.router);",
+      "});",
+      "}",
+      "});",
+      "",
+      "export { router };"
+    ]
+  },
+  "configuracionMaterialUi": {
+    "prefix": "conmiu",
+    "body": [
+      " export const tokens = { ",
+      "grey: {",
+      "100: '#f0f0f3',",
+      "200: '#e1e2e7',",
+      "300: '#d1d3da',",
+      "400: '#c2c5ce',",
+      "500: '#b3b6c2',",
+      "600: '#8f929b',",
+      "700: '#6b6d74',",
+      "800: '#48494e',",
+      "900: '#242427',",
+      "},",
+      "primary: {",
+      // light green
+      "100: '#d0fcf4',",
+      "200: '#a0f9e9',",
+      "300: '#71f5de',",
+      "400: '#41f2d3',",
+      "500: '#12efc8',",
+      "600: '#0ebfa0',",
+      "700: '#0b8f78',",
+      "800: '#076050',",
+      "900: '#043028',",
+      "},",
+      "secondary: {",
+      "// yellow",
+      "100: '#fcf0dd',",
+      "200: '#fae1bb',",
+      "300: '#f7d299',",
+      "400: '#f5c377',",
+      "500: '#f2b455',",
+      "600: '#c29044',",
+      "700: '#916c33',",
+      "800: '#614822',",
+      "900: '#302411',",
+      "},",
+      "tertiary: {",
+      "// purple",
+      "500: '#8884d8',",
+      "},",
+      "background: {",
+      "light: '#2d2d34',",
+      "main: '#1f2026',",
+      "},",
+      "};",
+      "",
+      "// mui theme settings",
+      "export const themeSettings = {",
+      "palette: {",
+      "primary: {",
+      "...tokens.primary,",
+      "main: tokens.primary[500],",
+      "light: tokens.primary[400],",
+      "},",
+      "secondary: {",
+      "...tokens.secondary,",
+      "main: tokens.secondary[500],",
+      "},",
+      "tertiary: {",
+      "...tokens.tertiary,",
+      "},",
+      "grey: {",
+      "...tokens.grey,",
+      "main: tokens.grey[500],",
+      "},",
+      "background: {",
+      "default: tokens.background.main,",
+      "light: tokens.background.light,",
+      "},",
+      "},",
+      "typography: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 12,",
+      "h1: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 32,",
+      "},",
+      "h2: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 24,",
+      "},",
+      "h3: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 20,",
+      "fontWeight: 800,",
+      "color: tokens.grey[200],",
+      "},",
+      "h4: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 14,",
+      "fontWeight: 600,",
+      "color: tokens.grey[300],",
+      "},",
+      "h5: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 12,",
+      "fontWeight: 400,",
+      "color: tokens.grey[500],",
+      "},",
+      "h6: {",
+      "fontFamily: ['Inter', 'sans-serif'].join(','),",
+      "fontSize: 10,",
+      "color: tokens.grey[700],",
+      "},",
+      "},",
+      "};;"
+    ]
+  },
+  "extensItfcsMui": {
+    "prefix": "extmui",
+    "body": [
+      "import { Palette, PaletteColor } from '@mui/material/styles/createPalette';",
+      "",
+      "declare module '@mui/material/styles/createPalette' {",
+      "interface PaletteColor {",
+      "[key: number]: string;",
+      "}",
+      "",
+      "interface Palette {",
+      "tertiary: PaletteColor;",
+      "}",
+      "}",
+      ""
+    ]
+  },
+  "configureStoreUseSelDis": {
+    "prefix": "cnStrU",
+    "body": [
+      "type AppDispatch = typeof store.dispatch;",
+      "type RootState = ReturnType<typeof store.getState>;",
+      "export const useDispatch: () => AppDispatch = useAppDispatch;",
+      "export const useSelector: TypedUseSelectorHook<RootState> = useAppSelector;"
+    ]
+  },
+  "delay": {
+    "prefix": "delay",
+    "body": [
+      "const delay = async (ms: number) =>",
+      "await new Promise((resolve) => setTimeout(resolve(ms)));"
+    ]
+  },
+  "imports": {
+    "prefix": "imp",
+    "body": ["import {${2:}} from '${1:}' "]
+  }
+}
