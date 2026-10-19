@@ -19,3 +19,8 @@
 # Rendered config templates. Their outputs (.toml, .kdl, .json) are all LF
 # formats, so the templates must be too.
 *.template text eol=lf
+
+# The same reasoning for the files bootstrap seeds once from an example: the
+# rule above matches *.json, and "settings.local.json.example" does not, so
+# without this line the seed would be CRLF and the file it produces LF.
+*.json.example text eol=lf
