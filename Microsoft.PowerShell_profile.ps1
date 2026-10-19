@@ -8,29 +8,81 @@ Set-PsReadLineOption -PredictionViewStyle ListView
 # also writes its theme store on first import, and a shell that starts while
 # those files are still being written reads empty XML. Neither case is worth a
 # red error on every prompt: the shell is perfectly usable without icons.
+#
+# A torn theme store used to be permanent. The module reads the store near the
+# end of its import and only rewrites it after that read succeeds, so once one
+# of those files is invalid XML the import always fails at the read, never
+# reaches the rewrite, and the warning comes back in every new shell. It has
+# happened twice. So treat a failed import as a possibly poisoned store: clear
+# the theme files and import once more. The module regenerates them from the
+# .psd1 themes shipped inside Modules/Terminal-Icons/<version>/Data.
+#
+# prefs.xml is deliberately left alone. It holds the chosen icon and color
+# theme, and the module already falls back to defaults when it cannot parse it.
 try {
     Import-Module Terminal-Icons -ErrorAction Stop
 } catch {
-    Write-Host 'Terminal-Icons did not load. Run install.ps1 to restore Gallery modules.' -ForegroundColor DarkYellow
+    $iconStore = Join-Path $env:APPDATA 'powershell\Community\Terminal-Icons'
+    Remove-Item (Join-Path $iconStore '*_icon.xml')  -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $iconStore '*_color.xml') -Force -ErrorAction SilentlyContinue
+    try {
+        Import-Module Terminal-Icons -Force -ErrorAction Stop
+    } catch {
+        # Report what actually broke. The old message named install.ps1, which
+        # only installs Gallery modules and never touches the theme store, so it
+        # sent us to the wrong place both times this happened.
+        Write-Host "Terminal-Icons did not load: $($_.Exception.Message)" -ForegroundColor DarkYellow
+        Write-Host 'If the module itself is missing, run install.ps1 to restore Gallery modules.' -ForegroundColor DarkYellow
+    }
 }
 
-# Zellij: persistencia de cwd con archivo global (mecanismo original simple)
-# Todos los panes/flotantes leen el mismo archivo al iniciar y restauran.
-# Trade-off: si cambias de tab y abris flotante, este puede tener la cwd de la tab anterior.
+# Zellij: restore the last useful cwd, but only in panes that never chose one.
+#
+# Alacritty sets no working_directory and is started from a shortcut, so zellij
+# inherits C:\Windows\System32 and hands that down to every pane it spawns
+# without an explicit cwd. This file carries the last directory a prompt was
+# drawn in, so a fresh pane lands somewhere useful instead.
+#
+# The restore is conditional on purpose. A pane created with an explicit cwd
+# already knows where it belongs - a layout can pin its own, and anything
+# started through `zellij action new-pane --cwd` carries one. Restoring
+# unconditionally overwrote that a few lines after the pane started.
+#
+# Note: _zflt and _zfltf below pass --cwd "$PWD", but Alt+f is bound in
+# config.kdl and Zellij sees the key before the pane, so those handlers do not
+# run today. They are kept for the day that binding is dropped again.
+#
+# Nothing writes a no-intent directory back to the file either, so the value
+# cannot be poisoned by a pane that started in System32 - which is how it came
+# to hold System32 and send every new pane there.
+#
+# Trade-off, unchanged: one global file, last writer wins. A pane that starts
+# with no cwd restores wherever the most recently active prompt was.
 if ($env:ZELLIJ) {
-    $_zjLastCwdFile = "$env:TEMP\zellij_cwd.txt"
+    $global:ZjLastCwdFile = Join-Path $env:TEMP 'zellij_cwd.txt'
 
-    # Al iniciar shell: restaurar cwd guardada
-    if (Test-Path $_zjLastCwdFile) {
-        $_last = (Get-Content $_zjLastCwdFile -Raw).Trim()
-        if ($_last -and (Test-Path $_last)) {
-            Set-Location $_last
+    # Directories that mean "nobody picked this".
+    $global:ZjNoIntentDirs = @(
+        [Environment]::GetFolderPath('System')
+        [Environment]::GetFolderPath('Windows')
+    ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
+
+    # On shell start: restore only if this pane inherited a directory.
+    if ($global:ZjNoIntentDirs -contains (Get-Location).Path.TrimEnd('\')) {
+        if (Test-Path $global:ZjLastCwdFile) {
+            $zjLast = (Get-Content $global:ZjLastCwdFile -Raw -ErrorAction SilentlyContinue).Trim()
+            if ($zjLast -and (Test-Path $zjLast)) {
+                Set-Location $zjLast
+            }
         }
     }
 
-    # En cada prompt: escribir cwd actual al archivo global
+    # On every prompt: record the cwd, unless it is one nobody picked.
     function prompt {
-        (Get-Location).Path | Set-Content $_zjLastCwdFile -NoNewline
+        $zjHere = (Get-Location).Path
+        if ($global:ZjNoIntentDirs -notcontains $zjHere.TrimEnd('\')) {
+            $zjHere | Set-Content $global:ZjLastCwdFile -NoNewline -ErrorAction SilentlyContinue
+        }
         "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
     }
 }
@@ -349,6 +401,73 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
 }
 
 # --- END TOOLS BLOCK ----------------------------------------------------------
+
+# --- Killing dev servers ------------------------------------------------------
+# Ctrl+C does not work inside Zellij on Windows. Its win32 port writes the raw
+# 0x03 byte into the pty and never turns it into a CTRL_C_EVENT, so nothing is
+# interrupted; closing the pane orphans the process tree instead of ending it.
+# Both were reproduced on 0.43.1-win32.5 against `pnpm run dev`.
+#
+# Walking up to the top of the runner chain is what makes the kill stick:
+# supervisors like `tsx watch` and `nodemon` respawn the server if only the
+# leaf process dies.
+function Stop-Port {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [int[]] $Port,
+
+        [switch] $WhatIfOnly
+    )
+
+    # Shells and multiplexers host the chain but are not part of it.
+    $stopAt = @('pwsh.exe', 'powershell.exe', 'zellij.exe', 'explorer.exe',
+                'claude.exe', 'wezterm-gui.exe', 'WindowsTerminal.exe', 'alacritty.exe')
+
+    foreach ($p in $Port) {
+        $owners = @(
+            Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue |
+                Select-Object -ExpandProperty OwningProcess -Unique
+        )
+
+        if (-not $owners) {
+            Write-Host "port $p : nothing listening" -ForegroundColor DarkGray
+            continue
+        }
+
+        foreach ($owner in $owners) {
+            $top = $owner
+            while ($true) {
+                $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$top" -ErrorAction SilentlyContinue
+                if (-not $proc) { break }
+
+                $parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.ParentProcessId)" -ErrorAction SilentlyContinue
+                if (-not $parent -or $parent.Name -in $stopAt) { break }
+
+                $top = $parent.ProcessId
+            }
+
+            $topProc = Get-CimInstance Win32_Process -Filter "ProcessId=$top" -ErrorAction SilentlyContinue
+            $label = if ($topProc) { "$($topProc.Name) (PID $top)" } else { "PID $top" }
+
+            if ($WhatIfOnly) {
+                Write-Host "port $p : would kill tree from $label" -ForegroundColor Yellow
+                continue
+            }
+
+            taskkill /PID $top /T /F 2>&1 | Out-Null
+
+            Start-Sleep -Milliseconds 400
+            if (Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue) {
+                Write-Host "port $p : still listening after killing $label" -ForegroundColor Red
+            } else {
+                Write-Host "port $p : freed (killed tree from $label)" -ForegroundColor Green
+            }
+        }
+    }
+}
+
+Set-Alias killport Stop-Port
 
 # --- Machine specific ---------------------------------------------------------
 # Paths on other drives and helpers for projects that only exist on one machine
