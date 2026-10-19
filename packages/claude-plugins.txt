@@ -1,0 +1,8 @@
+marketplace anthropics/claude-plugins-official
+marketplace Gentleman-Programming/engram
+
+plugin      context7@claude-plugins-official
+plugin      engram@engram
+plugin      frontend-design@claude-plugins-official
+plugin      gopls-lsp@claude-plugins-official
+plugin      superpowers@claude-plugins-official

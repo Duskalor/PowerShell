@@ -47,6 +47,10 @@
 .PARAMETER SkipExtensions
     Do not install the VS Code extensions from packages/vscode-extensions.txt.
 
+.PARAMETER SkipPlugins
+    Do not add the Claude Code marketplaces or install the plugins from
+    packages/claude-plugins.txt.
+
 .PARAMETER SkipEngram
     Do not install the engram binary.
 
@@ -69,6 +73,7 @@ param(
     [switch]$SkipModules,
     [switch]$SkipFont,
     [switch]$SkipExtensions,
+    [switch]$SkipPlugins,
     [switch]$SkipEngram,
     [switch]$DryRun
 )
@@ -523,8 +528,120 @@ if ($SkipExtensions) {
     }
 }
 
-# --- 7. Engram ----------------------------------------------------------------
-Write-Head '7. Engram'
+# --- 7. Claude Code plugins ---------------------------------------------------
+Write-Head '7. Claude Code plugins'
+
+<#
+    Plugins live in ~/.claude/plugins, which manifest.psd1 deliberately does not
+    link: that directory is 65 MB of marketplace checkouts and an install cache
+    keyed by git sha, not configuration. Committing it would version a cache,
+    and linking it would hand two machines one cache. What is worth versioning
+    is the *intent* - which marketplaces, which plugins - and that is what
+    packages/claude-plugins.txt holds. Same reasoning as the VS Code extension
+    list above, same shape of artifact.
+
+    Marketplaces go in first. `plugin install name@marketplace` can only resolve
+    a marketplace that was already added, so the file lists them first and this
+    loop preserves that order.
+
+    Skipped rather than failed when `claude` is missing: step 3 installs the
+    Claude Code CLI, but a machine that does not want it should still finish.
+
+    Nothing here passes -y. A marketplace may declare a command that runs on
+    install, and accepting that unseen is a trust decision this installer is not
+    entitled to make on the user's behalf - such a plugin earns a warning line
+    and gets installed by hand, deliberately.
+#>
+$pluginFile = Join-Path $repo (Join-Path 'packages' 'claude-plugins.txt')
+
+if ($SkipPlugins) {
+    Write-Skip 'Claude Code plugins (-SkipPlugins)'
+} elseif (-not (Test-Path -LiteralPath $pluginFile)) {
+    Write-Warn 'claude-plugins.txt not found, nothing to install'
+} elseif (-not (Test-Tool 'claude')) {
+    Write-Skip 'Claude Code plugins (claude is not on PATH)'
+} else {
+    $wantedMarkets = @()
+    $wantedPlugins = @()
+    foreach ($line in (Get-Content -LiteralPath $pluginFile)) {
+        $text = $line.Trim()
+        if (-not $text -or $text.StartsWith('#')) { continue }
+        # "<kind> <value>", split on the first run of whitespace.
+        $parts = $text -split '\s+', 2
+        if ($parts.Count -ne 2) { Write-Warn "claude-plugins.txt: cannot read '$text'"; continue }
+        switch ($parts[0].ToLowerInvariant()) {
+            'marketplace' { $wantedMarkets += $parts[1] }
+            'plugin'      { $wantedPlugins += $parts[1] }
+            default       { Write-Warn "claude-plugins.txt: unknown kind '$($parts[0])'" }
+        }
+    }
+
+    if ($DryRun) {
+        Write-Plan "add $($wantedMarkets.Count) Claude Code marketplaces and install $($wantedPlugins.Count) plugins"
+        foreach ($m in $wantedMarkets) { Write-Note "marketplace $m" }
+        foreach ($p in $wantedPlugins) { Write-Note "plugin      $p" }
+    } else {
+        # Two listings up front rather than a process launch per entry. Both
+        # commands print JSON, so neither answer has to be parsed out of prose.
+        $ErrorActionPreference = 'Continue'
+        $haveMarkets = @()
+        $marketJson  = & claude plugin marketplace list --json 2>$null
+        if ($LASTEXITCODE -eq 0 -and $marketJson) {
+            $haveMarkets = @(($marketJson | ConvertFrom-Json) | ForEach-Object { $_.name })
+        }
+        $havePlugins = @()
+        $pluginJson  = & claude plugin list --json 2>$null
+        if ($LASTEXITCODE -eq 0 -and $pluginJson) {
+            $havePlugins = @(($pluginJson | ConvertFrom-Json) | ForEach-Object { $_.id })
+        }
+        $ErrorActionPreference = 'Stop'
+
+        # A marketplace is matched by the name `marketplace add` derives from the
+        # repository - its last segment - because that name, not the repository
+        # URL, is what the plugin ids below resolve against.
+        $badMarkets = @()
+        $newMarkets = 0
+        foreach ($source in $wantedMarkets) {
+            $name = ($source -split '[/\\]')[-1]
+            if ($haveMarkets -contains $name) { continue }
+            $ErrorActionPreference = 'Continue'
+            & claude plugin marketplace add $source *> $null
+            $code = $LASTEXITCODE
+            $ErrorActionPreference = 'Stop'
+            if ($code -eq 0) { $newMarkets++ } else { $badMarkets += $source }
+        }
+        if ($newMarkets -gt 0) { Write-Ok "$newMarkets Claude Code marketplaces added" }
+        if ($badMarkets.Count -gt 0) {
+            Write-Warn "$($badMarkets.Count) marketplaces failed to add: $($badMarkets -join ', ')"
+            Write-Note 'their plugins cannot resolve until the marketplace is there'
+        }
+
+        $missing = @($wantedPlugins | Where-Object { $havePlugins -notcontains $_ })
+        if ($missing.Count -eq 0) {
+            Write-Skip "Claude Code plugins ($($wantedPlugins.Count) already installed)"
+        } else {
+            Write-Host "  ...      installing $($missing.Count) of $($wantedPlugins.Count) plugins" -ForegroundColor DarkGray
+            $bad = @()
+            foreach ($id in $missing) {
+                $ErrorActionPreference = 'Continue'
+                & claude plugin install $id *> $null
+                $code = $LASTEXITCODE
+                $ErrorActionPreference = 'Stop'
+                if ($code -ne 0) { $bad += $id }
+            }
+            if ($bad.Count -eq 0) {
+                Write-Ok "Claude Code plugins ($($missing.Count) installed)"
+            } else {
+                Write-Warn "$($bad.Count) of $($missing.Count) plugins failed: $($bad -join ', ')"
+                Write-Note 'one that declares an install command must be installed by hand,'
+                Write-Note 'so the command is read before it runs'
+            }
+        }
+    }
+}
+
+# --- 8. Engram ----------------------------------------------------------------
+Write-Head '8. Engram'
 
 $binDir     = Join-Path $HOME 'bin'
 $engramPath = Join-Path $binDir 'engram.exe'
@@ -575,8 +692,8 @@ if ($DryRun) {
     }
 }
 
-# --- 8. Link the configuration ------------------------------------------------
-Write-Head '8. Link the configuration'
+# --- 9. Link the configuration ------------------------------------------------
+Write-Head '9. Link the configuration'
 
 $bootstrap = Join-Path $repo 'bootstrap.ps1'
 # An array splats as native arguments for pwsh.exe; a script needs a hashtable.

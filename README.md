@@ -54,7 +54,7 @@ of duplicating anything.
 | `-DryRun` | report every step, change nothing |
 | `-AllPackages` | restore `packages/winget.json`, the full machine snapshot, instead of the curated toolchain |
 | `-SkipPackages` | link the configuration, install no applications |
-| `-SkipFont` / `-SkipEngram` | leave those alone |
+| `-SkipFont` / `-SkipExtensions` / `-SkipPlugins` / `-SkipEngram` | leave those alone |
 
 ### Already have git and a clone
 
@@ -219,7 +219,7 @@ they are rebuilt by the tools that own them.
 | Excluded | Size | Restored by |
 |----------|------|-------------|
 | `~/.claude/projects`, `file-history`, `cache`, `sessions` | ~300 MB | rebuilt as you work |
-| `~/.claude/plugins` | 65 MB | Claude Code plugin install |
+| `~/.claude/plugins` | 65 MB | `install.ps1`, from `packages/claude-plugins.txt` |
 | `~/.config/opencode/node_modules` | 136 MB | `npm install` |
 | `~/.config/zellij/plugins` | 8 MB | `bootstrap.ps1`, from the `Downloads` list in `manifest.psd1` |
 | `Modules/` (PowerShell Gallery modules) | 1 MB | `install.ps1`, from its `$Modules` list |
@@ -227,6 +227,30 @@ they are rebuilt by the tools that own them.
 Directories that mix configuration with cache are linked **entry by entry**,
 never as a whole. That is why `manifest.psd1` lists `config/claude/settings.json`
 rather than `config/claude`.
+
+### Why the Claude Code plugins are not a link
+
+`~/.claude` is linked entry by entry, and `plugins/` is one of the entries left
+out on purpose. It is not configuration: it holds a git checkout of every
+marketplace plus an install cache keyed by commit sha, which is where its 65 MB
+come from. Committing that would put a cache under version control, and linking
+it would point two machines at one cache and let whichever ran last decide what
+the other has installed.
+
+What is worth versioning is the intent — which marketplaces, which plugins — so
+`packages/claude-plugins.txt` records exactly that, and step 7 of `install.ps1`
+replays it. Same reasoning and same shape as the VS Code extension list: a tool
+that offers no import command still accepts one identifier at a time.
+
+The step is skipped, not failed, when `claude` is not on PATH, and it passes no
+`-y`: a marketplace can declare a command that runs at install time, and
+accepting one unseen is not a decision the installer makes for you. Such a
+plugin gets a warning line and is installed by hand.
+
+The list is shorter than what `claude plugin list` prints, on purpose — plugins
+that came down from the claude.ai account restore themselves and belong to no
+marketplace, so they are left out. [`packages/README.md`](packages/README.md)
+has the detail, and the re-export command that keeps the file honest.
 
 ### Machine specific values
 
