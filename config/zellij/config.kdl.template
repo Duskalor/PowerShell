@@ -273,27 +273,49 @@ keybinds clear-defaults=true {
         // --- Monitor orientation layouts -------------------------------
         // Alt 1: landscape monitor, two panes side by side.
         // Alt 2: portrait monitor, two panes stacked.
-        // Both keep running processes; only pane geometry changes.
+        // Both keep running processes; only pane geometry changes, so both
+        // layouts must keep the same pane count for the mapping to stay 1:1.
+        //
+        // These used to shell out to `zellij action override-layout` through a
+        // 1%-sized floating pane, because the native action refused to parse
+        // whenever default_layout was set ("Tab layout cannot itself have
+        // tabs") on the 0.43.1-win32 fork. The native form landed in 0.44 and
+        // parses here, so the subprocess, the phantom pane and the hardcoded
+        // binary path are all gone -- that path broke twice when the binary
+        // moved.
         bind "Alt 1" {
-            Run "{LOCALAPPDATA/}/Microsoft/WinGet/Links/zellij.exe" "action" "override-layout" "{HOME/}/.config/zellij/layouts/orient_wide.kdl" "--retain-existing-terminal-panes" "--retain-existing-plugin-panes" "--apply-only-to-active-tab" {
-                floating true
-                close_on_exit true
-                width "1%"
-                height "1%"
-                x "0"
-                y "0"
-                name "orientation"
+            OverrideLayout {
+                layout "{HOME/}/.config/zellij/layouts/orient_wide.kdl"
+                retain_existing_terminal_panes true
+                retain_existing_plugin_panes true
+                apply_only_to_active_tab true
             }
         }
         bind "Alt 2" {
-            Run "{LOCALAPPDATA/}/Microsoft/WinGet/Links/zellij.exe" "action" "override-layout" "{HOME/}/.config/zellij/layouts/orient_tall.kdl" "--retain-existing-terminal-panes" "--retain-existing-plugin-panes" "--apply-only-to-active-tab" {
+            OverrideLayout {
+                layout "{HOME/}/.config/zellij/layouts/orient_tall.kdl"
+                retain_existing_terminal_panes true
+                retain_existing_plugin_panes true
+                apply_only_to_active_tab true
+            }
+        }
+        // --- Stop dev servers ------------------------------------------
+        // Alt c: the Ctrl+C that works. Ctrl+C does not reach child
+        // processes inside Zellij on Windows -- the key arrives, but what
+        // the pane's shell gets has Break semantics rather than an
+        // interrupt, so a dev server survives it, survives closing the
+        // pane, and keeps holding its port. This kills every dev server
+        // running in a pane, from the top of its runner chain so `tsx
+        // watch` and friends cannot respawn the child.
+        bind "Alt c" {
+            Run "pwsh" "-NoProfile" "-File" "{HOME/}/Documents/PowerShell/Scripts/Stop-DevServer.ps1" {
                 floating true
-                close_on_exit true
-                width "1%"
-                height "1%"
-                x "0"
-                y "0"
-                name "orientation"
+                close_on_exit false
+                width "60%"
+                height "20%"
+                x "20%"
+                y "40%"
+                name "stop dev servers"
             }
         }
         bind "Alt y" {
@@ -348,14 +370,43 @@ keybinds clear-defaults=true {
         // so dropping them costs nothing and keeps the row consistent.
         bind "Ctrl l" { GoToPreviousTab; }
         bind "Ctrl p" { GoToNextTab; }
-        // Read back output without entering scroll mode. Half a page per press:
-        // enough to move, little enough to keep the surrounding lines in view.
-        // PSReadLine in Windows edit mode binds neither key, and on Windows EOF
-        // is Ctrl+Z, not Ctrl+D, so nothing is taken away from pwsh. Caveat: a
-        // Zellij binding is seen before the pane's program, so inside WSL or an
-        // ssh session Ctrl+D no longer reaches the remote shell as EOF.
-        bind "Ctrl d" { HalfPageScrollUp; }
-        bind "Ctrl f" { HalfPageScrollDown; }
+        // Read back output without entering scroll mode, by emulating the
+        // mouse wheel instead of moving Zellij's own viewport.
+        //
+        // HalfPageScrollUp was the obvious binding here and it does not work,
+        // for a reason that took three rounds to pin down: full-screen TUIs
+        // (Claude Code, opencode) keep no scrollback in the pane. Measured by
+        // printing 300 numbered lines into a pane and then starting Claude
+        // Code in it -- `dump-screen --full` went from 306 lines to 21, with
+        // zero markers left. Zellij's scroll actions had an empty buffer to
+        // move through, so the keys fired and nothing happened. Those TUIs
+        // scroll their OWN internal view, which is why the mouse wheel works
+        // in them and a Zellij scroll action does not.
+        //
+        // So send what the wheel sends. SGR mouse encoding is
+        // ESC [ < Cb ; col ; row M, with Cb 64 for wheel up and 65 for wheel
+        // down; the bytes below are that sequence at column 10, row 10, three
+        // ticks per press to match one wheel notch. Verified both ways: the
+        // sequence written to a Claude Code pane scrolls it to the top of the
+        // conversation, and the same bytes written to a pwsh pane leave no
+        // stray characters, so shell panes degrade to a no-op rather than to
+        // garbage in the prompt.
+        //
+        // Cost of keeping this on Ctrl d: Zellij sees the key before the pane,
+        // so Claude Code never receives Ctrl+D as its own exit shortcut, and
+        // inside WSL or ssh it no longer reaches the remote shell as EOF.
+        // Zellij's native viewport scrolling is still reachable in scroll mode
+        // through the tmux prefix.
+        bind "Ctrl d" {
+            Write 27 91 60 54 52 59 49 48 59 49 48 77;
+            Write 27 91 60 54 52 59 49 48 59 49 48 77;
+            Write 27 91 60 54 52 59 49 48 59 49 48 77;
+        }
+        bind "Ctrl f" {
+            Write 27 91 60 54 53 59 49 48 59 49 48 77;
+            Write 27 91 60 54 53 59 49 48 59 49 48 77;
+            Write 27 91 60 54 53 59 49 48 59 49 48 77;
+        }
         bind "Alt left" { MoveFocusOrTab "left"; }
         bind "Alt down" { MoveFocus "down"; }
         bind "Alt up" { MoveFocus "up"; }
@@ -365,6 +416,14 @@ keybinds clear-defaults=true {
         bind "Alt =" { Resize "Increase"; }
         bind "Alt [" { PreviousSwapLayout; }
         bind "Alt ]" { NextSwapLayout; }
+        // Alt+f toggles the floating pane at the Zellij level, on purpose.
+        //
+        // The shell also binds Alt+f (_zflt in Microsoft.PowerShell_profile.ps1),
+        // which would open the pane with --cwd "$PWD" and keep its directory.
+        // Zellij sees the key first, so that handler never runs and the pane
+        // opens with no cwd. That is the known cost of this binding: it is kept
+        // because a Zellij-level key works from every pane, including from
+        // inside the floating pane itself and from panes not running pwsh.
         bind "Alt f" { ToggleFloatingPanes; }
         bind "Alt F" { TogglePanePinned; }
         bind "Alt h" { MoveFocusOrTab "left"; }
@@ -593,8 +652,12 @@ default_mode "locked"
  
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
-// 
-default_shell "pwsh"
+//
+// A full path, not the bare name: upstream Zellij takes this as a path and does
+// not search PATH, so "pwsh" silently falls back to cmd.exe there. The win32
+// fork resolved the bare name, which is why it looked fine for a while. Both
+// accept the full path, so this works before and after migrating off the fork.
+default_shell "{PROGRAMFILES/}/PowerShell/7/pwsh.exe"
  
 // Choose the path to override cwd that zellij will use for opening new panes
 // 
