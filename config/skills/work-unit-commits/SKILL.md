@@ -17,7 +17,7 @@ Use it for:
 - Preparing commits before opening a PR.
 - Turning a large change into chained or stacked PRs.
 - Keeping reviewer cognitive load healthy.
-- Applying SDD tasks without accidentally producing a PR above 400 changed lines.
+- Committing ODD work units in reviewable slices.
 
 ## Critical Rules
 
@@ -29,7 +29,7 @@ Use it for:
 | Keep docs with the user-visible change | Docs belong with the feature or workflow they explain. |
 | Tell a story | A reviewer should understand why each commit exists from its diff and message. |
 | Future PR-ready | Each commit should be a candidate chained PR when the change grows. |
-| SDD workload guard | If SDD tasks forecast a >400-line change, group commits into chained PR slices before implementation. |
+| Budget is not code-golf | Never shrink a diff by deleting comments, blank lines, docs, or tests, or by compressing code, to fit the review budget (400 by default, or the session `review_budget_lines`). Slice by work unit or report the overage. |
 
 ## Work Unit Checklist
 
@@ -39,6 +39,9 @@ Before committing, confirm:
 - [ ] The repo still makes sense after applying only this commit.
 - [ ] Tests or docs for this unit are included when relevant.
 - [ ] Rollback is reasonable without reverting unrelated work.
+- [ ] Focused test command and exact result are recorded.
+- [ ] Runtime harness command/scenario and exact result are recorded, or explicit `N/A` explains why no runtime boundary exists.
+- [ ] Rollback boundary names the exact files/behavior removable without unrelated work.
 - [ ] The commit message explains the outcome, not the file list.
 
 ## Split Examples
@@ -59,20 +62,14 @@ Use work-unit commits as the foundation for chained PRs:
 3. Commit it with a Conventional Commit message.
 4. If the PR approaches 400 changed lines, promote commits or groups of commits into chained PRs.
 
-## SDD Relationship
+## ODD Relationship
 
-When `sdd-tasks` produces a Review Workload Forecast:
+Organic Driven Development (ODD) commits substantial work in reviewable slices on the feature branch, not one commit per task:
 
-- Low risk: keep work-unit commits inside one PR.
-- Medium risk: commit by work unit and monitor changed lines before PR creation.
-- High risk: follow SDD `delivery_strategy` — ask on `ask-on-risk`, auto-slice on `auto-chain`, require `size:exception` on over-budget `single-pr`, or record accepted `size:exception` on `exception-ok`.
-
-Each SDD work unit should map cleanly to a commit or PR with:
-
-- clear start state,
-- clear finished state,
-- verification in the same unit,
-- rollback that does not remove unrelated work.
+- Commit work units in reviewable slices of about 400 authored changed lines, branch first when on the default branch, with tests and docs alongside the behavior and a Conventional Commit message. A unit whose Risk line names a high-risk item gets its own commit so native review can take it alone, and the last slice closes the feature.
+- The native review candidate is that commit, or the PR slice it belongs to when review is deferred, against the previous reviewed boundary. It is never a TODO checkbox and never the accumulated feature branch.
+- The running authored line count from work-unit commits feeds the delivery-strategy vocabulary: `ask-on-risk`, `auto-chain`, `single-pr`, `exception-ok`.
+- The ODD feature document records the commit that holds each task as evidence and, once a delivery strategy applies, the chosen chain strategy and slice boundaries (which commits each PR holds).
 
 ## Commands
 
