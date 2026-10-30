@@ -38,34 +38,57 @@ try {
 
 # Zellij: restore the last useful cwd, but only in panes that never chose one.
 #
-# Alacritty sets no working_directory and is started from a shortcut, so zellij
-# inherits C:\Windows\System32 and hands that down to every pane it spawns
-# without an explicit cwd. This file carries the last directory a prompt was
-# drawn in, so a fresh pane lands somewhere useful instead.
+# On Windows, Zellij cannot read a pane's working directory, so every pane it
+# spawns without an explicit cwd starts in the directory Zellij itself was
+# launched in: System32 from an Alacritty shortcut, the install folder from
+# PowerToys Run, a project folder from another terminal. Two files carry the
+# state Zellij cannot:
 #
-# The restore is conditional on purpose. A pane created with an explicit cwd
-# already knows where it belongs - a layout can pin its own, and anything
-# started through `zellij action new-pane --cwd` carries one. Restoring
-# unconditionally overwrote that a few lines after the pane started.
+#   zellij_cwd.txt             last directory a prompt was drawn in, any session
+#   zellij_launch_<name>.txt   the directory this session's panes inherit
 #
-# Note: _zflt and _zfltf below pass --cwd "$PWD", but Alt+f is bound in
-# config.kdl and Zellij sees the key before the pane, so those handlers do not
-# run today. They are kept for the day that binding is dropped again.
+# The first pane of a session records the launch directory. A later pane that
+# starts in exactly that directory inherited it and gets restored; a pane
+# created with `--cwd` lands somewhere else, so its directory is left alone -
+# restoring unconditionally overwrote it a few lines after the pane started.
 #
-# Nothing writes a no-intent directory back to the file either, so the value
+# The first pane itself is restored only when its directory is one nobody
+# picks - System32, the Windows folder, or the folder zellij.exe lives in,
+# which is what a shortcut or PowerToys Run hands down. Launched from a real
+# directory it stays there, and that directory becomes the session baseline.
+#
+# Nothing writes a no-intent directory back to zellij_cwd.txt, so the value
 # cannot be poisoned by a pane that started in System32 - which is how it came
 # to hold System32 and send every new pane there.
 #
-# Trade-off, unchanged: one global file, last writer wins. A pane that starts
-# with no cwd restores wherever the most recently active prompt was.
+# Note: _zfltf below passes --cwd "$PWD" and is reachable from Alt+x, not from
+# Alt+f - Zellij consumes that key before the pane ever sees it.
+#
+# Trade-offs: zellij_cwd.txt is one global file, last writer wins. The launch
+# file is keyed by session name, so an explicitly named session relaunched from
+# a different directory reads the previous run's baseline until its panes draw
+# a prompt; random session names never collide.
 if ($env:ZELLIJ) {
     $global:ZjLastCwdFile = Join-Path $env:TEMP 'zellij_cwd.txt'
 
+    $zjSessionKey = if ($env:ZELLIJ_SESSION_NAME) {
+        $env:ZELLIJ_SESSION_NAME -replace '[^A-Za-z0-9._-]', '_'
+    } else {
+        'default'
+    }
+    $global:ZjLaunchCwdFile = Join-Path $env:TEMP "zellij_launch_$zjSessionKey.txt"
+
     # Directories that mean "nobody picked this".
+    $zjExeDir = $null
+    $zjCmd = Get-Command zellij -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($zjCmd -and $zjCmd.Source) { $zjExeDir = Split-Path -Parent $zjCmd.Source }
+
     $global:ZjNoIntentDirs = @(
         [Environment]::GetFolderPath('System')
         [Environment]::GetFolderPath('Windows')
         (Join-Path $env:ProgramFiles 'Alacritty')
+        $zjExeDir
     ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
 
     # Same, but for everything below them. PowerToys Run starts a shortcut with
@@ -86,16 +109,34 @@ if ($env:ZELLIJ) {
         $false
     }
 
+    $zjStartDir = (Get-Location).Path.TrimEnd('\')
+    $zjNoIntent = Test-ZjNoIntent $zjStartDir
+
+    $zjLaunchDir = $null
+    if (Test-Path $global:ZjLaunchCwdFile) {
+        $zjRaw = Get-Content $global:ZjLaunchCwdFile -Raw -ErrorAction SilentlyContinue
+        if ($zjRaw) { $zjLaunchDir = $zjRaw.Trim().TrimEnd('\') }
+    }
+
+    if ($zjLaunchDir) {
+        # A pane that starts where the session started was given no cwd.
+        $zjInherited = $zjNoIntent -or ($zjStartDir -eq $zjLaunchDir)
+    } else {
+        # First pane of the session: record the directory later panes inherit.
+        $zjStartDir | Set-Content $global:ZjLaunchCwdFile -NoNewline -ErrorAction SilentlyContinue
+        $zjInherited = $zjNoIntent
+    }
+
     # On shell start: restore only if this pane inherited a directory, and fall
-    # back to home when there is nothing to restore.
-    if (Test-ZjNoIntent (Get-Location).Path) {
+    # back to home when a no-intent directory has nothing to restore.
+    if ($zjInherited) {
         $zjLast = $null
         if (Test-Path $global:ZjLastCwdFile) {
             $zjLast = (Get-Content $global:ZjLastCwdFile -Raw -ErrorAction SilentlyContinue).Trim()
         }
         if ($zjLast -and (Test-Path $zjLast) -and -not (Test-ZjNoIntent $zjLast)) {
             Set-Location $zjLast
-        } else {
+        } elseif ($zjNoIntent) {
             Set-Location $HOME
         }
     }
