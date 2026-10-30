@@ -257,42 +257,23 @@ if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsOutputRedirected -and -n
 }
 Remove-Variable ddArgs, ddScripted -ErrorAction SilentlyContinue
 
-# ─── Floating pane toggle ──────────────────────────────────────────────
-# _zflt:   Crea/toggle pane flotante con el CWD del panel actual.
-# _zfltf:  Fuerza creación (útil si mataron el proceso flotante).
+# ─── Floating pane ─────────────────────────────────────────────────────
+# _zfltf: force a fresh floating pane rooted at this pane's cwd.
 #
-# 1er Alt+F en un panel         → crea floating pane en el CWD de ESE panel.
-# 2do Alt+F en el mismo panel    → toggle (hide/show). El proceso sigue vivo.
-# Alt+F, f (rápido, secuencia)   → fuerza crear uno nuevo (reset).
+# Alt+f used to be bound here to create/toggle a floating pane, but Zellij sees
+# the key before the pane does - config.kdl binds it to ToggleFloatingPanes - so
+# neither chord ever ran inside a session. That toggle is already native, so
+# only the force-create variant is kept, on a chord that neither PSReadLine nor
+# config.kdl claims. Check BOTH before moving it again.
 #
-# NOTA: Desde la ventana flotante misma NO uses Alt+F (crearía otra).
+# NOTA: Desde la ventana flotante misma NO uses el atajo (crearía otra).
 #       Usá click, Alt+arrow o Ctrl+g, p, w para salir/volver.
-$script:ZjFloatCreated = $false
-
-function _zflt {
-    if ($script:ZjFloatCreated) {
-        # Ya existe un floating pane desde este panel → toggle
-        $null = zellij action toggle-floating-panes 2>&1
-    } else {
-        # Primera vez → crear con el CWD actual
-        $null = zellij action new-pane --floating --cwd "$($PWD.Path)" 2>&1
-        $script:ZjFloatCreated = $true
-    }
-}
-
 function _zfltf {
-    # Forzar creación de floating pane en el CWD actual
     $null = zellij action new-pane --floating --cwd "$($PWD.Path)" 2>&1
-    $script:ZjFloatCreated = $true
 }
 
-# Alt+F → toggle/crear (solo si estamos dentro de Zellij)
-Set-PSReadLineKeyHandler -Chord "Alt+f" -ScriptBlock {
-    if ($env:ZELLIJ_SESSION_NAME) { _zflt }
-}
-
-# Alt+F, f  → fuerza crear nuevo floating pane (secuencia: apretá Alt+F, soltá, y después f)
-Set-PSReadLineKeyHandler -Chord "Alt+f,f" -ScriptBlock {
+# Alt+x → forzar un floating pane nuevo en el CWD actual (solo dentro de Zellij)
+Set-PSReadLineKeyHandler -Chord "Alt+x" -ScriptBlock {
     if ($env:ZELLIJ_SESSION_NAME) { _zfltf }
 }
 
@@ -399,8 +380,8 @@ function cmds {
     Write-Host "  ==========================================" -ForegroundColor DarkGray
     Write-Host "   ZELLIJ (solo dentro de Zellij)" -ForegroundColor Yellow
     Write-Host "  ==========================================" -ForegroundColor DarkGray
-    Write-Host "  Alt+F          toggle/crear floating pane en CWD actual"
-    Write-Host "  Alt+F, f       forzar nuevo floating pane"
+    Write-Host "  Alt+x          forzar un floating pane nuevo en el CWD actual"
+    Write-Host "  Alt+F          lo maneja Zellij (ToggleFloatingPanes), no el profile"
     Write-Host ""
 }
 function ghelp { cmds }
