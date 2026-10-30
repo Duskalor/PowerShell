@@ -365,6 +365,7 @@ function cmds {
     Write-Host "  nes            ir a nestjs"
     Write-Host "  power          ir a PowerShell + abrir VSCode"
     Write-Host "  w              abrir explorador en carpeta actual (Alt+w: 1 tecla)"
+    Write-Host "  ed             abrir carpeta actual en VS Code (Alt+e: 1 tecla)"
     Write-Host ""
     Write-Host "  ==========================================" -ForegroundColor DarkGray
     Write-Host "   DEV" -ForegroundColor Yellow
@@ -409,6 +410,18 @@ function w {
 # Alt+w: the same thing with one keystroke. Alt+w is free in Zellij's
 # config.kdl; Alt+f is not, it is bound to ToggleFloatingPanes there.
 Set-PSReadLineKeyHandler -Chord 'Alt+w' -ScriptBlock { w }
+
+# Open the current directory in VS Code.
+#
+# `code` is the bin\code.cmd shim; calling it with & keeps it in this console
+# and returns as soon as the CLI hands the folder to the running instance.
+function ed {
+    if ((Get-Location).Provider.Name -ne 'FileSystem') { return }
+    & code $PWD.ProviderPath
+}
+
+# Alt+e: same thing with one keystroke.
+Set-PSReadLineKeyHandler -Chord 'Alt+e' -ScriptBlock { ed }
 
 function pr {
     Set-Location -Path "$projects\React"
