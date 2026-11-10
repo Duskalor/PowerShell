@@ -46,58 +46,67 @@
 # No visible effect while window.opacity = 1.0.
 transparent_background_colors = true
 
-# Catppuccin Mocha — official palette
+# DuskaDev "Brasa" — embers at dusk. Same palette in Zellij, WezTerm,
+# Windows Terminal and the LazyVim colorscheme (config/nvim/lua/plugins/brasa.lua).
 [colors.primary]
-background = "#1e1e2e"
-foreground = "#cdd6f4"
-dim_foreground = "#7f849c"
-bright_foreground = "#cdd6f4"
+background = "#19120f"
+foreground = "#f0e3d6"
+dim_foreground = "#97806f"
+bright_foreground = "#fff4e8"
 
 [colors.cursor]
-cursor = "#f5e0dc"
-text = "#1e1e2e"
+cursor = "#ff8a3d"
+text = "#19120f"
 
 [colors.selection]
-background = "#f5e0dc"
-text = "#1e1e2e"
+background = "#3a2b22"
+text = "CellForeground"
 
 [colors.normal]
-black = "#45475a"
-red = "#f38ba8"
-green = "#a6e3a1"
-yellow = "#f9e2af"
-blue = "#89b4fa"
-magenta = "#f5c2e7"
-cyan = "#94e2d5"
-white = "#bac2de"
+black = "#2a1f19"
+red = "#e5534b"
+green = "#a7c080"
+yellow = "#f2c14e"
+blue = "#8fb3c9"
+magenta = "#d9849a"
+cyan = "#8ec5b8"
+white = "#d8c8b8"
 
 [colors.bright]
-black = "#585b70"
-red = "#f38ba8"
-green = "#a6e3a1"
-yellow = "#f9e2af"
-blue = "#89b4fa"
-magenta = "#f5c2e7"
-cyan = "#94e2d5"
-white = "#a6adc8"
+black = "#64534a"
+red = "#ff6b5e"
+green = "#bcd197"
+yellow = "#ffd36b"
+blue = "#a5c6db"
+magenta = "#e8a0b2"
+cyan = "#a6d8cb"
+white = "#f0e3d6"
 
 [[colors.indexed_colors]]
 index = 16
-color = "#fab387"
+color = "#ff8a3d"
 
 [[colors.indexed_colors]]
 index = 17
-color = "#f5e0dc"
+color = "#ffb070"
 
 [cursor]
 style = "Block"
 unfocused_hollow = true
 
+# CaskaydiaCove NF = Cascadia Code + Nerd Font icons, installed machine-wide
+# by install.ps1. Cascadia is wider than Iosevka, hence 15 instead of 16.
+# Alacritty does not render ligatures; WezTerm and Windows Terminal do.
 [font]
-size = 16
+size = 15
 
 [font.normal]
-family = "IosevkaTerm NF"
+family = "CaskaydiaCove NF"
+style = "Regular"
+
+[font.italic]
+family = "CaskaydiaCove NF"
+style = "Italic"
 
 [window]
 option_as_alt = "Both"

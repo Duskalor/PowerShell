@@ -5,8 +5,11 @@ local config = wezterm.config_builder()
 config.default_prog = { "zellij.exe" }
 
 -- ─── Font ────────────────────────────────────────────────────────────────────
-config.font = wezterm.font("IosevkaTerm NF")
-config.font_size = 16.0
+-- CaskaydiaCove NF: Cascadia Code with Nerd Font icons. calt/liga turn the
+-- ligatures on (=> !== >= ??); ss01 is Cascadia's cursive italic.
+config.font = wezterm.font_with_fallback({ "CaskaydiaCove NF", "IosevkaTerm NF" })
+config.font_size = 15.0
+config.harfbuzz_features = { "calt=1", "liga=1", "ss01=1" }
 
 -- ─── Window ──────────────────────────────────────────────────────────────────
 config.window_background_opacity = 0.90
@@ -33,45 +36,46 @@ config.set_environment_variables = {
 }
 
 -- ─── Colors ──────────────────────────────────────────────────────────────────
+-- DuskaDev "Brasa": same palette as Alacritty, Zellij and LazyVim.
 config.colors = {
-  foreground = "#C9C7CD",
-  background = "#000000",
+  foreground = "#f0e3d6",
+  background = "#19120f",
 
-  cursor_bg = "#92A2D5",
-  cursor_fg = "#C9C7CD",
-  cursor_border = "#92A2D5",
+  cursor_bg = "#ff8a3d",
+  cursor_fg = "#19120f",
+  cursor_border = "#ff8a3d",
 
-  selection_fg = "#C9C7CD",
-  selection_bg = "#3B4252",
+  selection_fg = "#f0e3d6",
+  selection_bg = "#3a2b22",
 
-  scrollbar_thumb = "#4C566A",
-  split = "#4C566A",
+  scrollbar_thumb = "#3a2b22",
+  split = "#3a2b22",
 
   ansi = {
-    "#000000", -- black
-    "#EA83A5", -- red
-    "#90B99F", -- green
-    "#E6B99D", -- yellow
-    "#85B5BA", -- blue
-    "#92A2D5", -- magenta
-    "#85B5BA", -- cyan
-    "#C9C7CD", -- white
+    "#2a1f19", -- black
+    "#e5534b", -- red
+    "#a7c080", -- green
+    "#f2c14e", -- yellow
+    "#8fb3c9", -- blue
+    "#d9849a", -- magenta
+    "#8ec5b8", -- cyan
+    "#d8c8b8", -- white
   },
 
   brights = {
-    "#4C566A", -- bright black
-    "#EA83A5", -- bright red
-    "#90B99F", -- bright green
-    "#E6B99D", -- bright yellow
-    "#85B5BA", -- bright blue
-    "#92A2D5", -- bright magenta
-    "#85B5BA", -- bright cyan
-    "#C9C7CD", -- bright white
+    "#64534a", -- bright black
+    "#ff6b5e", -- bright red
+    "#bcd197", -- bright green
+    "#ffd36b", -- bright yellow
+    "#a5c6db", -- bright blue
+    "#e8a0b2", -- bright magenta
+    "#a6d8cb", -- bright cyan
+    "#f0e3d6", -- bright white
   },
 
   indexed = {
-    [16] = "#F5A191",
-    [17] = "#E29ECA",
+    [16] = "#ff8a3d",
+    [17] = "#ffb070",
   },
 }
 
