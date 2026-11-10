@@ -42,7 +42,7 @@
     Do not install PowerShell modules from the PowerShell Gallery.
 
 .PARAMETER SkipFont
-    Do not install IosevkaTerm Nerd Font.
+    Do not install the Nerd Fonts (CaskaydiaCove and IosevkaTerm).
 
 .PARAMETER SkipExtensions
     Do not install the VS Code extensions from packages/vscode-extensions.txt.
@@ -82,8 +82,14 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $RepoUrl   = 'https://github.com/Duskalor/PowerShell.git'
-$FontUrl   = 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/IosevkaTerm.zip'
-$FontName  = 'IosevkaTermNerdFont'
+# Nerd Fonts the configs ask for. Name is the file prefix inside the release
+# zip; Label is only what the log prints.
+#   CaskaydiaCove NF  Alacritty, WezTerm and Windows Terminal (DuskaDev look)
+#   IosevkaTerm NF    alacritty-wsl.toml (NFM) and WezTerm's fallback
+$Fonts = @(
+    @{ Label = 'CaskaydiaCove Nerd Font'; Name = 'CaskaydiaCoveNerdFont'; Url = 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/CascadiaCode.zip' }
+    @{ Label = 'IosevkaTerm Nerd Font';   Name = 'IosevkaTermNerdFont';   Url = 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/IosevkaTerm.zip' }
+)
 $EngramApi = 'https://api.github.com/repos/Gentleman-Programming/engram/releases/latest'
 
 # Gallery modules the profile imports. They install into the profile directory,
@@ -423,49 +429,73 @@ if ($SkipModules) {
 # --- 5. Font ------------------------------------------------------------------
 Write-Head '5. Font'
 
-$fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
-$already = @(Get-ChildItem -LiteralPath $fontDir -Filter "$FontName-*.ttf" -ErrorAction SilentlyContinue)
+<#
+    Alacritty resolves fonts through DirectWrite's system collection, which
+    only holds machine-wide fonts: a per-user install shows up in Windows
+    Terminal and WezTerm but Alacritty reports "IosevkaTerm NF not found".
+    So the font goes machine-wide when elevated, per-user otherwise (with a
+    warning). An existing per-user install does not count as done.
+#>
+$machineFontDir = Join-Path $env:WINDIR 'Fonts'
+$userFontDir    = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+$fontDir = if ($isAdmin) { $machineFontDir } else { $userFontDir }
+$regKey  = if ($isAdmin) { 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts' } else { 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts' }
+foreach ($font in $Fonts) {
+    $FontName = $font.Name
+    $FontUrl  = $font.Url
+    $FontLabel = $font.Label
+    $machineFaces = @(Get-ChildItem -LiteralPath $machineFontDir -Filter "$FontName-*.ttf" -ErrorAction SilentlyContinue)
+    $userFaces    = @(Get-ChildItem -LiteralPath $userFontDir -Filter "$FontName-*.ttf" -ErrorAction SilentlyContinue)
 
-if ($SkipFont) {
-    Write-Skip 'font (-SkipFont)'
-} elseif ($already.Count -gt 0) {
-    Write-Skip "IosevkaTerm Nerd Font already installed ($($already.Count) faces)"
-} elseif ($DryRun) {
-    Write-Plan 'download and install IosevkaTerm Nerd Font for this user'
-} else {
-    try {
-        $zip     = Join-Path $env:TEMP 'IosevkaTerm-NF.zip'
-        $extract = Join-Path $env:TEMP 'IosevkaTerm-NF'
-        Write-Host '  ...      downloading IosevkaTerm Nerd Font' -ForegroundColor DarkGray
-        Invoke-WebRequest -Uri $FontUrl -OutFile $zip -UseBasicParsing
-        if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
-        Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+    if ($SkipFont) {
+        Write-Skip 'font (-SkipFont)'
+    } elseif ($machineFaces.Count -gt 0) {
+        Write-Skip "$FontLabel already installed machine-wide ($($machineFaces.Count) faces)"
+    } elseif ($userFaces.Count -gt 0 -and -not $isAdmin) {
+        Write-Skip "$FontLabel installed for this user only ($($userFaces.Count) faces)"
+        Write-Warn 'Alacritty cannot see per-user fonts; re-run install.ps1 from an elevated terminal'
+    } elseif ($DryRun) {
+        Write-Plan "download and install $FontLabel $(if ($isAdmin) { 'machine-wide' } else { 'for this user' })"
+    } else {
+        try {
+            $zip     = Join-Path $env:TEMP "$FontName.zip"
+            $extract = Join-Path $env:TEMP $FontName
+            Write-Host "  ...      downloading $FontLabel" -ForegroundColor DarkGray
+            Invoke-WebRequest -Uri $FontUrl -OutFile $zip -UseBasicParsing
+            if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
+            Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
 
-        # The release carries three families: the plain one plus Mono and Propo
-        # variants. alacritty.toml and .wezterm.lua ask for "IosevkaTerm NF",
-        # which is the plain one, so only those faces are installed.
-        $faces = @(Get-ChildItem -LiteralPath $extract -Filter "$FontName-*.ttf" -Recurse)
-        if ($faces.Count -eq 0) { throw "no $FontName-*.ttf inside the release archive" }
+            # Each release carries three families: the plain one plus Mono and
+            # Propo variants. The configs ask for the plain one ("... NF") and
+            # alacritty-wsl.toml for Mono ("IosevkaTerm NFM"), so those two are
+            # installed and Propo is left out.
+            $faces = @(Get-ChildItem -LiteralPath $extract -Filter "$FontName*.ttf" -Recurse |
+                Where-Object Name -match "^$FontName(Mono)?-")
+            if ($faces.Count -eq 0) { throw "no $FontName-*.ttf inside the release archive" }
 
-        # Per-user install needs no elevation: copy the file into the user font
-        # directory and name it in the user font registry key.
-        New-Item -ItemType Directory -Path $fontDir -Force | Out-Null
-        $regKey = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
-        if (-not (Test-Path $regKey)) { New-Item -Path $regKey -Force | Out-Null }
+            # Copy each file into the font directory and name it in the matching
+            # registry key; machine-wide entries take the bare file name.
+            New-Item -ItemType Directory -Path $fontDir -Force | Out-Null
+            if (-not (Test-Path $regKey)) { New-Item -Path $regKey -Force | Out-Null }
 
-        foreach ($face in $faces) {
-            $dest = Join-Path $fontDir $face.Name
-            Copy-Item -LiteralPath $face.FullName -Destination $dest -Force
-            $entry = [System.IO.Path]::GetFileNameWithoutExtension($face.Name) + ' (TrueType)'
-            New-ItemProperty -Path $regKey -Name $entry -Value $dest -PropertyType String -Force | Out-Null
+            foreach ($face in $faces) {
+                $dest = Join-Path $fontDir $face.Name
+                Copy-Item -LiteralPath $face.FullName -Destination $dest -Force
+                $entry = [System.IO.Path]::GetFileNameWithoutExtension($face.Name) + ' (TrueType)'
+                $value = if ($isAdmin) { $face.Name } else { $dest }
+                New-ItemProperty -Path $regKey -Name $entry -Value $value -PropertyType String -Force | Out-Null
+            }
+            if (-not $isAdmin) {
+                Write-Warn 'installed for this user only; Alacritty needs it machine-wide (re-run elevated)'
+            }
+
+            Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Ok "$FontLabel ($($faces.Count) faces)"
+            Write-Note 'terminals that are already open keep the old font until restarted'
+        } catch {
+            Write-Bad "font install: $($_.Exception.Message)"
         }
-
-        Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Ok "IosevkaTerm Nerd Font ($($faces.Count) faces)"
-        Write-Note 'terminals that are already open keep the old font until restarted'
-    } catch {
-        Write-Bad "font install: $($_.Exception.Message)"
     }
 }
 
