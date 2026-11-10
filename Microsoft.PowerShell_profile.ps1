@@ -100,15 +100,121 @@ if ($env:ZELLIJ) {
         }
     }
 
-    # On every prompt: record the cwd, unless it is one nobody picked.
-    function prompt {
-        $zjHere = (Get-Location).Path
-        if (-not (Test-ZjNoIntent $zjHere)) {
-            $zjHere | Set-Content $global:ZjLastCwdFile -NoNewline -ErrorAction SilentlyContinue
-        }
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
-    }
+    # Recording the cwd on every prompt happens in the DuskaDev prompt below.
 }
+
+# ─── DuskaDev: prompt, colores y saludo (paleta "Brasa") ─────────────────────
+# Same palette as Alacritty, WezTerm, Windows Terminal, Zellij and LazyVim.
+$global:Dd = @{
+    Orange = "`e[38;2;255;138;61m"
+    Red    = "`e[38;2;229;83;75m"
+    Gold   = "`e[38;2;242;193;78m"
+    Rose   = "`e[38;2;217;132;154m"
+    Green  = "`e[38;2;167;192;128m"
+    Blue   = "`e[38;2;143;179;201m"
+    Peach  = "`e[38;2;255;176;112m"
+    Fg     = "`e[38;2;240;227;214m"
+    Muted  = "`e[38;2;151;128;111m"
+    Dim    = "`e[38;2;100;83;74m"
+    Bold   = "`e[1m"
+    Italic = "`e[3m"
+    Reset  = "`e[0m"
+}
+
+Set-PSReadLineOption -Colors @{
+    Command          = $Dd.Gold
+    Parameter        = $Dd.Blue
+    String           = $Dd.Green
+    Operator         = $Dd.Orange
+    Keyword          = $Dd.Orange
+    Variable         = $Dd.Rose
+    Type             = $Dd.Rose
+    Number           = $Dd.Peach
+    Member           = $Dd.Fg
+    Comment          = "$($Dd.Muted)$($Dd.Italic)"
+    InlinePrediction = $Dd.Dim
+    ListPrediction   = $Dd.Orange
+}
+
+# Branch name straight from .git/HEAD: spawning git on every prompt costs
+# 30-60 ms on Windows, reading one file costs nothing. Handles worktrees,
+# where .git is a file pointing at the real git dir.
+function global:Get-DdGitBranch {
+    $loc = Get-Location
+    if ($loc.Provider.Name -ne 'FileSystem') { return $null }
+    $dir = $loc.ProviderPath
+    while ($dir) {
+        $git = Join-Path $dir '.git'
+        $head = $null
+        if (Test-Path -LiteralPath $git -PathType Container) {
+            $head = Join-Path $git 'HEAD'
+        } elseif (Test-Path -LiteralPath $git -PathType Leaf) {
+            $gitDir = (Get-Content -LiteralPath $git -TotalCount 1) -replace '^gitdir:\s*', ''
+            if (-not [IO.Path]::IsPathRooted($gitDir)) { $gitDir = Join-Path $dir $gitDir }
+            $head = Join-Path $gitDir 'HEAD'
+        }
+        if ($head) {
+            if (-not (Test-Path -LiteralPath $head)) { return $null }
+            $ref = Get-Content -LiteralPath $head -TotalCount 1
+            if ($ref -match '^ref: refs/heads/(.+)$') { return $Matches[1] }
+            return $ref.Substring(0, [Math]::Min(7, $ref.Length))
+        }
+        $dir = Split-Path $dir -Parent
+    }
+    $null
+}
+
+# ▲ duskadev ~/proyectos/api ⎇ main ❯
+# The arrow turns red when the last command failed.
+function prompt {
+    $ok = $?
+    $here = (Get-Location).Path
+
+    if ($env:ZELLIJ -and -not (Test-ZjNoIntent $here)) {
+        $here | Set-Content $global:ZjLastCwdFile -NoNewline -ErrorAction SilentlyContinue
+    }
+
+    $path = $here
+    if ($path.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase)) {
+        $path = '~' + $path.Substring($HOME.Length)
+    }
+    $path = $path -replace '\\', '/'
+
+    $d = $global:Dd
+    $branch = Get-DdGitBranch
+    $git = if ($branch) { " $($d.Gold)⎇ $branch" } else { '' }
+    $arrow = if ($ok) { $d.Orange } else { $d.Red }
+    $nest = '❯' * $nestedPromptLevel
+
+    "$($d.Orange)$($d.Bold)▲ duskadev$($d.Reset) $($d.Fg)$path$git $arrow$($d.Bold)❯$nest$($d.Reset) "
+}
+
+#   ▲ DUSKA·DEV              Paul Cruz · @duskalor
+#   ─────────────            pwsh 7.5 · Windows 11
+#   built at dusk            mar 10 nov · 09:41
+function global:Show-DuskaDev {
+    $d = $global:Dd
+    $os = if ([Environment]::OSVersion.Version.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' }
+    $when = (Get-Date).ToString('ddd dd MMM · HH:mm')
+    $pad = ' ' * 12
+    Write-Host ''
+    Write-Host "  $($d.Orange)$($d.Bold)▲ DUSKA·DEV$($d.Reset)$pad  $($d.Fg)Paul Cruz $($d.Muted)· @duskalor$($d.Reset)"
+    Write-Host "  $($d.Dim)─────────────$($d.Reset)$pad$($d.Muted)pwsh $($PSVersionTable.PSVersion) · $os$($d.Reset)"
+    Write-Host "  $($d.Gold)$($d.Italic)built at dusk$($d.Reset)$pad$($d.Muted)$when$($d.Reset)"
+    Write-Host ''
+}
+Set-Alias -Name duska -Value Show-DuskaDev
+
+# Greet only a person: an interactive console, not a script, not `pwsh -c`,
+# not an agent's tool call. Inside Zellij only the session's first pane
+# (ZELLIJ_PANE_ID 0) greets, so splitting a pane stays quiet.
+$ddArgs = [Environment]::GetCommandLineArgs() | Select-Object -Skip 1
+$ddScripted = $ddArgs | Where-Object { $_ -match '^-(c|command|f|file|noni|noninteractive|encodedcommand|e)$' }
+if ($Host.Name -eq 'ConsoleHost' -and -not [Console]::IsOutputRedirected -and -not $ddScripted -and
+    (-not $env:ZELLIJ -or $env:ZELLIJ_PANE_ID -eq '0')) {
+    Show-DuskaDev
+}
+Remove-Variable ddArgs, ddScripted -ErrorAction SilentlyContinue
 
 # ─── Floating pane toggle ──────────────────────────────────────────────
 # _zflt:   Crea/toggle pane flotante con el CWD del panel actual.
