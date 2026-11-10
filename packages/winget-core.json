@@ -18,6 +18,8 @@
 				{ "PackageIdentifier" : "junegunn.fzf" },
 				{ "PackageIdentifier" : "ajeetdsouza.zoxide" },
 				{ "PackageIdentifier" : "JesseDuffield.lazygit" },
+				{ "PackageIdentifier" : "Neovim.Neovim" },
+				{ "PackageIdentifier" : "BrechtSanders.WinLibs.POSIX.UCRT" },
 				{ "PackageIdentifier" : "OpenJS.NodeJS.22" },
 				{ "PackageIdentifier" : "Microsoft.VisualStudioCode" },
 				{ "PackageIdentifier" : "Anthropic.Claude" },
