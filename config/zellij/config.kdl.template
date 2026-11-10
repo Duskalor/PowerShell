@@ -641,9 +641,25 @@ themes {
       black "#000000"     // bl: dark background (almost black)
       white "#C9C7CD"     // na: light text (light gray)
     }
+
+    // DuskaDev "Brasa": embers at dusk. Same palette as alacritty.toml,
+    // .wezterm.lua, Windows Terminal and the LazyVim colorscheme.
+    brasa {
+      fg      "#f0e3d6"   // text
+      bg      "#2a1f19"   // panels, selected UI
+      black   "#19120f"   // background
+      red     "#e5534b"
+      green   "#a7c080"
+      yellow  "#f2c14e"
+      blue    "#8fb3c9"
+      magenta "#d9849a"
+      cyan    "#8ec5b8"
+      white   "#f0e3d6"
+      orange  "#ff8a3d"   // brand accent
+    }
 }
 
-theme "catppuccin-mocha"
+theme "brasa"
 
 // Choose the base input mode of zellij.
 // Default: normal
@@ -664,9 +680,9 @@ default_shell "{PROGRAMFILES/}/PowerShell/7/pwsh.exe"
 // default_cwd "/tmp"
  
 // The name of the default layout to load on startup
-// Default: "work_oldWorld"
-// 
-default_layout "work_oldWorld"
+// Default: "work_dusk"
+//
+default_layout "work_dusk"
  
 // The folder in which Zellij will look for layouts
 // (Requires restart)

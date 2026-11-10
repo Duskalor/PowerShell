@@ -31,7 +31,7 @@
     ],
     "copyFormatting": "none",
     "copyOnSelect": false,
-    "defaultProfile": "{5fb123f1-af88-5b5c-8953-d14a8def1978}",
+    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
     "keybindings": 
     [
         {
@@ -59,7 +59,22 @@
     ],
     "profiles": 
     {
-        "defaults": {},
+        "defaults": 
+        {
+            "colorScheme": "DuskaDev Brasa",
+            "cursorColor": "#FF8A3D",
+            "font": 
+            {
+                "face": "CaskaydiaCove NF",
+                "features": 
+                {
+                    "calt": 1,
+                    "liga": 1,
+                    "ss01": 1
+                },
+                "size": 14
+            }
+        },
         "list": 
         [
             {
@@ -90,11 +105,6 @@
                 "source": "Windows.Terminal.Azure"
             },
             {
-                "font": 
-                {
-                    "face": "Iosevka Nerd Font",
-                    "size": 15
-                },
                 "guid": "{5fb123f1-af88-5b5c-8953-d14a8def1978}",
                 "hidden": false,
                 "name": "PowerShell 7",
@@ -109,6 +119,31 @@
             }
         ]
     },
-    "schemes": [],
+    "schemes": 
+    [
+        {
+            "name": "DuskaDev Brasa",
+            "background": "#19120F",
+            "foreground": "#F0E3D6",
+            "cursorColor": "#FF8A3D",
+            "selectionBackground": "#3A2B22",
+            "black": "#2A1F19",
+            "red": "#E5534B",
+            "green": "#A7C080",
+            "yellow": "#F2C14E",
+            "blue": "#8FB3C9",
+            "purple": "#D9849A",
+            "cyan": "#8EC5B8",
+            "white": "#D8C8B8",
+            "brightBlack": "#64534A",
+            "brightRed": "#FF6B5E",
+            "brightGreen": "#BCD197",
+            "brightYellow": "#FFD36B",
+            "brightBlue": "#A5C6DB",
+            "brightPurple": "#E8A0B2",
+            "brightCyan": "#A6D8CB",
+            "brightWhite": "#F0E3D6"
+        }
+    ],
     "themes": []
 }

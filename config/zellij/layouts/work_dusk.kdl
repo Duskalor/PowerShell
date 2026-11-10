@@ -1,0 +1,63 @@
+// DuskaDev "Brasa" layout: same tabs as work_oldWorld, branded zjstatus bar.
+// Palette: bg #19120f · panel #2a1f19 · text #f0e3d6 · muted #97806f
+//          orange #ff8a3d · red #e5534b · gold #f2c14e
+layout {
+    tab name="claude" focus=true {
+        pane split_direction="vertical" {
+            pane size="50%" focus=true
+            pane size="50%"
+        }
+    }
+
+    tab name="opencode" {
+        pane split_direction="vertical" {
+            pane size="50%" focus=true
+            pane size="50%"
+        }
+    }
+
+    swap_floating_layout {
+        floating_panes {
+            pane x="15%" y="20%" width="70%" height="60%"
+        }
+    }
+
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
+                format_left   "{mode}#[bg=#ff8a3d,fg=#19120f,bold] ▲ DUSKA·DEV #[bg=#19120f] {tabs}"
+                format_center "#[fg=#97806f,italic]built at dusk"
+                format_right  "{command_git_branch}{datetime}"
+                format_space  "#[bg=#19120f]"
+
+                border_enabled  "false"
+
+                // default_mode is "locked", so locked is what shows most of the time.
+                mode_normal        "#[bg=#e5534b,fg=#19120f,bold] NORMAL "
+                mode_locked        "#[bg=#e5534b,fg=#19120f,bold] LOCKED "
+                mode_pane          "#[bg=#f2c14e,fg=#19120f,bold] PANE "
+                mode_tab           "#[bg=#f2c14e,fg=#19120f,bold] TAB "
+                mode_resize        "#[bg=#d9849a,fg=#19120f,bold] RESIZE "
+                mode_move          "#[bg=#d9849a,fg=#19120f,bold] MOVE "
+                mode_scroll        "#[bg=#8fb3c9,fg=#19120f,bold] SCROLL "
+                mode_search        "#[bg=#8fb3c9,fg=#19120f,bold] SEARCH "
+                mode_session       "#[bg=#a7c080,fg=#19120f,bold] SESSION "
+                mode_tmux          "#[bg=#ff8a3d,fg=#19120f,bold] TMUX "
+                mode_default_to_mode "normal"
+
+                tab_normal   "#[fg=#97806f] {index}:{name} "
+                tab_active   "#[bg=#2a1f19,fg=#f2c14e,bold] {index}:{name} "
+
+                command_git_branch_command     "git rev-parse --abbrev-ref HEAD"
+                command_git_branch_format      "#[fg=#f2c14e] ⎇ {stdout} "
+                command_git_branch_interval    "10"
+                command_git_branch_rendermode  "static"
+
+                datetime          "#[bg=#2a1f19,fg=#f0e3d6] {format} "
+                datetime_format   "%a %d %b  %H:%M"
+                datetime_timezone "America/Lima"
+            }
+        }
+        children
+    }
+}
