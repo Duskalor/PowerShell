@@ -65,22 +65,45 @@ if ($env:ZELLIJ) {
     $global:ZjNoIntentDirs = @(
         [Environment]::GetFolderPath('System')
         [Environment]::GetFolderPath('Windows')
+        (Join-Path $env:ProgramFiles 'Alacritty')
     ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
 
-    # On shell start: restore only if this pane inherited a directory.
-    if ($global:ZjNoIntentDirs -contains (Get-Location).Path.TrimEnd('\')) {
+    # Same, but for everything below them. PowerToys Run starts a shortcut with
+    # the shortcut's own folder as cwd when "Start in" is empty, which is how
+    # Alacritty landed in ...\Start Menu\Programs\Alacritty - and then wrote that
+    # folder into the file as if someone had chosen it.
+    $global:ZjNoIntentRoots = @(
+        [Environment]::GetFolderPath('StartMenu')
+        [Environment]::GetFolderPath('CommonStartMenu')
+    ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') + '\' }
+
+    function global:Test-ZjNoIntent([string]$Path) {
+        $p = $Path.TrimEnd('\')
+        if ($global:ZjNoIntentDirs -contains $p) { return $true }
+        foreach ($root in $global:ZjNoIntentRoots) {
+            if (($p + '\').StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+        }
+        $false
+    }
+
+    # On shell start: restore only if this pane inherited a directory, and fall
+    # back to home when there is nothing to restore.
+    if (Test-ZjNoIntent (Get-Location).Path) {
+        $zjLast = $null
         if (Test-Path $global:ZjLastCwdFile) {
             $zjLast = (Get-Content $global:ZjLastCwdFile -Raw -ErrorAction SilentlyContinue).Trim()
-            if ($zjLast -and (Test-Path $zjLast)) {
-                Set-Location $zjLast
-            }
+        }
+        if ($zjLast -and (Test-Path $zjLast) -and -not (Test-ZjNoIntent $zjLast)) {
+            Set-Location $zjLast
+        } else {
+            Set-Location $HOME
         }
     }
 
     # On every prompt: record the cwd, unless it is one nobody picked.
     function prompt {
         $zjHere = (Get-Location).Path
-        if ($global:ZjNoIntentDirs -notcontains $zjHere.TrimEnd('\')) {
+        if (-not (Test-ZjNoIntent $zjHere)) {
             $zjHere | Set-Content $global:ZjLastCwdFile -NoNewline -ErrorAction SilentlyContinue
         }
         "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "
