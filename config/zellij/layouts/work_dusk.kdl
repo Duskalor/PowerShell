@@ -1,6 +1,6 @@
-// DuskaDev "Brasa" layout: same tabs as work_oldWorld, branded zjstatus bar.
-// Palette: bg #19120f · panel #2a1f19 · text #f0e3d6 · muted #97806f
-//          orange #ff8a3d · red #e5534b · gold #f2c14e
+// DuskaDev "Medianoche" layout: same tabs as work_oldWorld, minimal zjstatus bar.
+// Palette: bg #0d1320 · panel #172033 · text #d8e0ee · muted #6a7a96
+//          amber #f2b84b · blue #5aa9ff · pink #e88fb5
 layout {
     tab name="claude" focus=true {
         pane split_direction="vertical" {
@@ -25,35 +25,36 @@ layout {
     default_tab_template {
         pane size=1 borderless=true {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
-                format_left   "{mode}#[bg=#ff8a3d,fg=#19120f,bold] ▲ DUSKA·DEV #[bg=#19120f] {tabs}"
-                format_center "#[fg=#97806f,italic]built at dusk"
-                format_right  "{command_git_branch}{datetime}"
-                format_space  "#[bg=#19120f]"
+                format_left   "{mode}{tabs}"
+                format_center "#[fg=#f2b84b,bold]☾ duskadev"
+                format_right  "{command_git_branch}#[fg=#6a7a96]· {datetime}"
+                format_space  "#[bg=#0d1320]"
 
                 border_enabled  "false"
 
+                // Text only, no blocks: the mode is a colored word, amber by default.
                 // default_mode is "locked", so locked is what shows most of the time.
-                mode_normal        "#[bg=#e5534b,fg=#19120f,bold] NORMAL "
-                mode_locked        "#[bg=#e5534b,fg=#19120f,bold] LOCKED "
-                mode_pane          "#[bg=#f2c14e,fg=#19120f,bold] PANE "
-                mode_tab           "#[bg=#f2c14e,fg=#19120f,bold] TAB "
-                mode_resize        "#[bg=#d9849a,fg=#19120f,bold] RESIZE "
-                mode_move          "#[bg=#d9849a,fg=#19120f,bold] MOVE "
-                mode_scroll        "#[bg=#8fb3c9,fg=#19120f,bold] SCROLL "
-                mode_search        "#[bg=#8fb3c9,fg=#19120f,bold] SEARCH "
-                mode_session       "#[bg=#a7c080,fg=#19120f,bold] SESSION "
-                mode_tmux          "#[bg=#ff8a3d,fg=#19120f,bold] TMUX "
+                mode_normal        "#[fg=#f2b84b,bold] NORMAL "
+                mode_locked        "#[fg=#f2b84b,bold] LOCKED "
+                mode_pane          "#[fg=#5aa9ff,bold] PANE "
+                mode_tab           "#[fg=#5aa9ff,bold] TAB "
+                mode_resize        "#[fg=#e88fb5,bold] RESIZE "
+                mode_move          "#[fg=#e88fb5,bold] MOVE "
+                mode_scroll        "#[fg=#4fd1c5,bold] SCROLL "
+                mode_search        "#[fg=#4fd1c5,bold] SEARCH "
+                mode_session       "#[fg=#8fd18f,bold] SESSION "
+                mode_tmux          "#[fg=#ef6b73,bold] TMUX "
                 mode_default_to_mode "normal"
 
-                tab_normal   "#[fg=#97806f] {index}:{name} "
-                tab_active   "#[bg=#2a1f19,fg=#f2c14e,bold] {index}:{name} "
+                tab_normal   "#[fg=#6a7a96] {index}:{name} "
+                tab_active   "#[fg=#d8e0ee,bold,underline] {index}:{name} "
 
                 command_git_branch_command     "git rev-parse --abbrev-ref HEAD"
-                command_git_branch_format      "#[fg=#f2c14e] ⎇ {stdout} "
+                command_git_branch_format      "#[fg=#5aa9ff]⎇ {stdout} "
                 command_git_branch_interval    "10"
                 command_git_branch_rendermode  "static"
 
-                datetime          "#[bg=#2a1f19,fg=#f0e3d6] {format} "
+                datetime          "#[fg=#6a7a96]{format} "
                 datetime_format   "%a %d %b  %H:%M"
                 datetime_timezone "America/Lima"
             }

@@ -36,46 +36,46 @@ config.set_environment_variables = {
 }
 
 -- ─── Colors ──────────────────────────────────────────────────────────────────
--- DuskaDev "Brasa": same palette as Alacritty, Zellij and LazyVim.
+-- DuskaDev "Medianoche": same palette as Alacritty, Zellij and LazyVim.
 config.colors = {
-  foreground = "#f0e3d6",
-  background = "#19120f",
+  foreground = "#d8e0ee",
+  background = "#0d1320",
 
-  cursor_bg = "#ff8a3d",
-  cursor_fg = "#19120f",
-  cursor_border = "#ff8a3d",
+  cursor_bg = "#f2b84b",
+  cursor_fg = "#0d1320",
+  cursor_border = "#f2b84b",
 
-  selection_fg = "#f0e3d6",
-  selection_bg = "#3a2b22",
+  selection_fg = "#d8e0ee",
+  selection_bg = "#26334d",
 
-  scrollbar_thumb = "#3a2b22",
-  split = "#3a2b22",
+  scrollbar_thumb = "#26334d",
+  split = "#26334d",
 
   ansi = {
-    "#2a1f19", -- black
-    "#e5534b", -- red
-    "#a7c080", -- green
-    "#f2c14e", -- yellow
-    "#8fb3c9", -- blue
-    "#d9849a", -- magenta
-    "#8ec5b8", -- cyan
-    "#d8c8b8", -- white
+    "#172033", -- black
+    "#ef6b73", -- red
+    "#8fd18f", -- green
+    "#f2b84b", -- yellow
+    "#5aa9ff", -- blue
+    "#e88fb5", -- magenta
+    "#4fd1c5", -- cyan
+    "#b8c3d6", -- white
   },
 
   brights = {
-    "#64534a", -- bright black
-    "#ff6b5e", -- bright red
-    "#bcd197", -- bright green
-    "#ffd36b", -- bright yellow
-    "#a5c6db", -- bright blue
-    "#e8a0b2", -- bright magenta
-    "#a6d8cb", -- bright cyan
-    "#f0e3d6", -- bright white
+    "#46536b", -- bright black
+    "#ff8a91", -- bright red
+    "#a8e0a8", -- bright green
+    "#ffcc6b", -- bright yellow
+    "#7dbcff", -- bright blue
+    "#f2a8c8", -- bright magenta
+    "#6fe0d5", -- bright cyan
+    "#d8e0ee", -- bright white
   },
 
   indexed = {
-    [16] = "#ff8a3d",
-    [17] = "#ffb070",
+    [16] = "#f2b84b",
+    [17] = "#ffd08a",
   },
 }
 

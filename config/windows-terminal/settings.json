@@ -61,8 +61,8 @@
     {
         "defaults": 
         {
-            "colorScheme": "DuskaDev Brasa",
-            "cursorColor": "#FF8A3D",
+            "colorScheme": "DuskaDev Medianoche",
+            "cursorColor": "#F2B84B",
             "font": 
             {
                 "face": "CaskaydiaCove NF",
@@ -122,27 +122,27 @@
     "schemes": 
     [
         {
-            "name": "DuskaDev Brasa",
-            "background": "#19120F",
-            "foreground": "#F0E3D6",
-            "cursorColor": "#FF8A3D",
-            "selectionBackground": "#3A2B22",
-            "black": "#2A1F19",
-            "red": "#E5534B",
-            "green": "#A7C080",
-            "yellow": "#F2C14E",
-            "blue": "#8FB3C9",
-            "purple": "#D9849A",
-            "cyan": "#8EC5B8",
-            "white": "#D8C8B8",
-            "brightBlack": "#64534A",
-            "brightRed": "#FF6B5E",
-            "brightGreen": "#BCD197",
-            "brightYellow": "#FFD36B",
-            "brightBlue": "#A5C6DB",
-            "brightPurple": "#E8A0B2",
-            "brightCyan": "#A6D8CB",
-            "brightWhite": "#F0E3D6"
+            "name": "DuskaDev Medianoche",
+            "background": "#0D1320",
+            "foreground": "#D8E0EE",
+            "cursorColor": "#F2B84B",
+            "selectionBackground": "#26334D",
+            "black": "#172033",
+            "red": "#EF6B73",
+            "green": "#8FD18F",
+            "yellow": "#F2B84B",
+            "blue": "#5AA9FF",
+            "purple": "#E88FB5",
+            "cyan": "#4FD1C5",
+            "white": "#B8C3D6",
+            "brightBlack": "#46536B",
+            "brightRed": "#FF8A91",
+            "brightGreen": "#A8E0A8",
+            "brightYellow": "#FFCC6B",
+            "brightBlue": "#7DBCFF",
+            "brightPurple": "#F2A8C8",
+            "brightCyan": "#6FE0D5",
+            "brightWhite": "#D8E0EE"
         }
     ],
     "themes": []

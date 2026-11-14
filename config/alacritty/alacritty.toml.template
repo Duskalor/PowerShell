@@ -46,49 +46,49 @@
 # No visible effect while window.opacity = 1.0.
 transparent_background_colors = true
 
-# DuskaDev "Brasa" — embers at dusk. Same palette in Zellij, WezTerm,
-# Windows Terminal and the LazyVim colorscheme (config/nvim/lua/plugins/brasa.lua).
+# DuskaDev "Medianoche" — night blue, one amber accent. Same palette in Zellij, WezTerm,
+# Windows Terminal and the LazyVim colorscheme (config/nvim/lua/plugins/medianoche.lua).
 [colors.primary]
-background = "#19120f"
-foreground = "#f0e3d6"
-dim_foreground = "#97806f"
-bright_foreground = "#fff4e8"
+background = "#0d1320"
+foreground = "#d8e0ee"
+dim_foreground = "#6a7a96"
+bright_foreground = "#eef3fb"
 
 [colors.cursor]
-cursor = "#ff8a3d"
-text = "#19120f"
+cursor = "#f2b84b"
+text = "#0d1320"
 
 [colors.selection]
-background = "#3a2b22"
+background = "#26334d"
 text = "CellForeground"
 
 [colors.normal]
-black = "#2a1f19"
-red = "#e5534b"
-green = "#a7c080"
-yellow = "#f2c14e"
-blue = "#8fb3c9"
-magenta = "#d9849a"
-cyan = "#8ec5b8"
-white = "#d8c8b8"
+black = "#172033"
+red = "#ef6b73"
+green = "#8fd18f"
+yellow = "#f2b84b"
+blue = "#5aa9ff"
+magenta = "#e88fb5"
+cyan = "#4fd1c5"
+white = "#b8c3d6"
 
 [colors.bright]
-black = "#64534a"
-red = "#ff6b5e"
-green = "#bcd197"
-yellow = "#ffd36b"
-blue = "#a5c6db"
-magenta = "#e8a0b2"
-cyan = "#a6d8cb"
-white = "#f0e3d6"
+black = "#46536b"
+red = "#ff8a91"
+green = "#a8e0a8"
+yellow = "#ffcc6b"
+blue = "#7dbcff"
+magenta = "#f2a8c8"
+cyan = "#6fe0d5"
+white = "#d8e0ee"
 
 [[colors.indexed_colors]]
 index = 16
-color = "#ff8a3d"
+color = "#f2b84b"
 
 [[colors.indexed_colors]]
 index = 17
-color = "#ffb070"
+color = "#ffd08a"
 
 [cursor]
 style = "Block"

@@ -144,37 +144,37 @@ if ($env:ZELLIJ) {
     # Recording the cwd on every prompt happens in the DuskaDev prompt below.
 }
 
-# ─── DuskaDev: prompt, colores y saludo (paleta "Brasa") ─────────────────────
+# ─── DuskaDev: prompt, colores y saludo (paleta "Medianoche") ────────────────
 # Same palette as Alacritty, WezTerm, Windows Terminal, Zellij and LazyVim.
 $global:Dd = @{
-    Orange = "`e[38;2;255;138;61m"
-    Red    = "`e[38;2;229;83;75m"
-    Gold   = "`e[38;2;242;193;78m"
-    Rose   = "`e[38;2;217;132;154m"
-    Green  = "`e[38;2;167;192;128m"
-    Blue   = "`e[38;2;143;179;201m"
-    Peach  = "`e[38;2;255;176;112m"
-    Fg     = "`e[38;2;240;227;214m"
-    Muted  = "`e[38;2;151;128;111m"
-    Dim    = "`e[38;2;100;83;74m"
+    Amber  = "`e[38;2;242;184;75m"
+    Red    = "`e[38;2;239;107;115m"
+    Blue   = "`e[38;2;90;169;255m"
+    Pink   = "`e[38;2;232;143;181m"
+    Teal   = "`e[38;2;79;209;197m"
+    Green  = "`e[38;2;143;209;143m"
+    Peach  = "`e[38;2;255;208;138m"
+    Fg     = "`e[38;2;216;224;238m"
+    Muted  = "`e[38;2;106;122;150m"
+    Dim    = "`e[38;2;70;83;107m"
     Bold   = "`e[1m"
     Italic = "`e[3m"
     Reset  = "`e[0m"
 }
 
 Set-PSReadLineOption -Colors @{
-    Command          = $Dd.Gold
-    Parameter        = $Dd.Blue
+    Command          = $Dd.Blue
+    Parameter        = $Dd.Teal
     String           = $Dd.Green
-    Operator         = $Dd.Orange
-    Keyword          = $Dd.Orange
-    Variable         = $Dd.Rose
-    Type             = $Dd.Rose
+    Operator         = $Dd.Amber
+    Keyword          = $Dd.Amber
+    Variable         = $Dd.Pink
+    Type             = $Dd.Teal
     Number           = $Dd.Peach
     Member           = $Dd.Fg
     Comment          = "$($Dd.Muted)$($Dd.Italic)"
     InlinePrediction = $Dd.Dim
-    ListPrediction   = $Dd.Orange
+    ListPrediction   = $Dd.Amber
 }
 
 # Branch name straight from .git/HEAD: spawning git on every prompt costs
@@ -205,7 +205,7 @@ function global:Get-DdGitBranch {
     $null
 }
 
-# ▲ duskadev ~/proyectos/api ⎇ main ❯
+# ☾ duskadev ~/proyectos/api ⎇ main ❯
 # The arrow turns red when the last command failed.
 function prompt {
     $ok = $?
@@ -223,25 +223,25 @@ function prompt {
 
     $d = $global:Dd
     $branch = Get-DdGitBranch
-    $git = if ($branch) { " $($d.Gold)⎇ $branch" } else { '' }
-    $arrow = if ($ok) { $d.Orange } else { $d.Red }
+    $git = if ($branch) { " $($d.Blue)⎇ $branch" } else { '' }
+    $arrow = if ($ok) { $d.Amber } else { $d.Red }
     $nest = '❯' * $nestedPromptLevel
 
-    "$($d.Orange)$($d.Bold)▲ duskadev$($d.Reset) $($d.Fg)$path$git $arrow$($d.Bold)❯$nest$($d.Reset) "
+    "$($d.Amber)$($d.Bold)☾ duskadev$($d.Reset) $($d.Fg)$path$git $arrow$($d.Bold)❯$nest$($d.Reset) "
 }
 
-#   ▲ DUSKA·DEV              Paul Cruz · @duskalor
+#   ☾ duskadev               Paul Cruz · @duskalor
 #   ─────────────            pwsh 7.5 · Windows 11
-#   built at dusk            mar 10 nov · 09:41
+#   code after sunset        mar 10 nov · 09:41
 function global:Show-DuskaDev {
     $d = $global:Dd
     $os = if ([Environment]::OSVersion.Version.Build -ge 22000) { 'Windows 11' } else { 'Windows 10' }
     $when = (Get-Date).ToString('ddd dd MMM · HH:mm')
     $pad = ' ' * 12
     Write-Host ''
-    Write-Host "  $($d.Orange)$($d.Bold)▲ DUSKA·DEV$($d.Reset)$pad  $($d.Fg)Paul Cruz $($d.Muted)· @duskalor$($d.Reset)"
+    Write-Host "  $($d.Amber)$($d.Bold)☾ duskadev$($d.Reset)$pad   $($d.Fg)Paul Cruz $($d.Muted)· @duskalor$($d.Reset)"
     Write-Host "  $($d.Dim)─────────────$($d.Reset)$pad$($d.Muted)pwsh $($PSVersionTable.PSVersion) · $os$($d.Reset)"
-    Write-Host "  $($d.Gold)$($d.Italic)built at dusk$($d.Reset)$pad$($d.Muted)$when$($d.Reset)"
+    Write-Host "  $($d.Pink)$($d.Italic)code after sunset$($d.Reset)$(' ' * 8)$($d.Muted)$when$($d.Reset)"
     Write-Host ''
 }
 Set-Alias -Name duska -Value Show-DuskaDev

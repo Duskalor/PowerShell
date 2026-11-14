@@ -642,24 +642,24 @@ themes {
       white "#C9C7CD"     // na: light text (light gray)
     }
 
-    // DuskaDev "Brasa": embers at dusk. Same palette as alacritty.toml,
-    // .wezterm.lua, Windows Terminal and the LazyVim colorscheme.
-    brasa {
-      fg      "#f0e3d6"   // text
-      bg      "#2a1f19"   // panels, selected UI
-      black   "#19120f"   // background
-      red     "#e5534b"
-      green   "#a7c080"
-      yellow  "#f2c14e"
-      blue    "#8fb3c9"
-      magenta "#d9849a"
-      cyan    "#8ec5b8"
-      white   "#f0e3d6"
-      orange  "#ff8a3d"   // brand accent
+    // DuskaDev "Medianoche": night blue with one amber accent. Same palette as
+    // alacritty.toml, .wezterm.lua, Windows Terminal and the LazyVim colorscheme.
+    medianoche {
+      fg      "#d8e0ee"   // text
+      bg      "#172033"   // panels, selected UI
+      black   "#0d1320"   // background
+      red     "#ef6b73"
+      green   "#8fd18f"
+      yellow  "#f2b84b"
+      blue    "#5aa9ff"
+      magenta "#e88fb5"
+      cyan    "#4fd1c5"
+      white   "#d8e0ee"
+      orange  "#f2b84b"   // brand accent
     }
 }
 
-theme "brasa"
+theme "medianoche"
 
 // Choose the base input mode of zellij.
 // Default: normal
